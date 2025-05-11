@@ -1,0 +1,3 @@
+primary color: 00b4d8
+secondary color: 90e0ef
+third color: caf0f8
