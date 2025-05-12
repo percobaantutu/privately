@@ -43,21 +43,26 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!validate()) return; // Validate the form before proceeding
+
+    setLoading(true);
+
     try {
-      if (state === "Sign Up") {
+      if (!isLogin) {
+        // Sign Up logic
         const { data } = await axios.post(`${backendUrl}/api/user/register`, {
           name: fullName,
           email,
           password,
         });
         if (data.success) {
-          localStorage.setItem("token", data.token);
-          setToken(data.token);
-          toast.success("User registered successfully");
+          toast.success("User registered successfully. Please log in.");
+          setIsLogin(true); // Switch to login form after successful registration
         } else {
           toast.error(data.message);
         }
       } else {
+        // Login logic
         const { data } = await axios.post(`${backendUrl}/api/user/login`, {
           email,
           password,
@@ -72,17 +77,8 @@ const Login = () => {
       }
     } catch (error) {
       toast.error(error.message);
-    }
-
-    if (!validate()) return;
-
-    setLoading(true);
-    await new Promise((res) => setTimeout(res, 2000)); // fake loading 2s
-
-    if (isLogin) {
-      alert(`Logged in with:\nEmail: ${email}\nPassword: ${password}`);
-    } else {
-      alert(`Signed up with:\nName: ${fullName}\nEmail: ${email}\nPassword: ${password}`);
+    } finally {
+      setLoading(false);
     }
 
     // Reset form
@@ -90,7 +86,6 @@ const Login = () => {
     setEmail("");
     setPassword("");
     setErrors({});
-    setLoading(false);
   };
 
   return (

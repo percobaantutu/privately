@@ -6,11 +6,10 @@ export const AppContext = createContext();
 
 const AppContextProvider = (props) => {
   const [teachers, setTeachers] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem("token") || ""); // Initialize token from localStorage
   const currencySymbol = "$";
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
-  const [token, setToken] = useState("");
 
   const getTeachers = async () => {
     try {
@@ -34,9 +33,10 @@ const AppContextProvider = (props) => {
   const value = {
     teachers,
     currencySymbol,
-    getTeachers, // Expose getTeachers if needed
+    getTeachers,
     token,
-    setToken, // Expose setToken to update the token
+    setToken,
+    backendUrl,
   };
 
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;

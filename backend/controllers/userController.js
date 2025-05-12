@@ -70,6 +70,7 @@ const loginUser = async (req, res) => {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
       return res.status(200).json({ success: true, message: "User logged in successfully", token });
     } else {
+      // Ensure return here to avoid referencing token outside its scope
       return res.status(400).json({ success: false, message: "Invalid credentials" });
     }
   } catch (error) {
