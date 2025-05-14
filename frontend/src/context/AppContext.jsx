@@ -1,45 +1,65 @@
-import { createContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 export const AppContext = createContext();
 
-const AppContextProvider = (props) => {
-  const [teachers, setTeachers] = useState([]);
-  const [token, setToken] = useState(localStorage.getItem("token") || ""); // Initialize token from localStorage
-  const currencySymbol = "$";
+export const AppProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
 
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
-  const getTeachers = async () => {
-    try {
-      const { data } = await axios.get(`${backendUrl}/api/teachers/list`);
-      if (data.success) {
-        setTeachers(data.teachers);
-        toast.success("Teachers fetched successfully!");
-      } else {
-        toast.error(data.message);
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/user/me`, {
+          withCredentials: true
+        });
+        if (data.success) {
+          setUser(data.user);
+        }
+      } catch (error) {
+        console.log("Not authenticated");
+      } finally {
+        setLoading(false);
       }
+    };
+
+    checkAuth();
+  }, [backendUrl]);
+
+  // Configure axios defaults
+  useEffect(() => {
+    axios.defaults.withCredentials = true;
+  }, []);
+
+  const logout = async () => {
+    try {
+      await axios.post(`${backendUrl}/api/user/logout`, {}, {
+        withCredentials: true
+      });
+      setUser(null);
+      toast.success("Logged out successfully");
     } catch (error) {
-      console.error("Error fetching teachers:", error);
-      toast.error(error.message);
+      console.error("Logout error:", error);
+      toast.error("Error logging out");
     }
   };
 
-  useEffect(() => {
-    getTeachers();
-  }, []); // Fetch teachers on component mount
-
-  const value = {
-    teachers,
-    currencySymbol,
-    getTeachers,
-    token,
-    setToken,
-    backendUrl,
-  };
-
-  return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider
+      value={{
+        user,
+        setUser,
+        loading,
+        backendUrl,
+        logout
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 };
 
-export default AppContextProvider;
+export default AppContext;

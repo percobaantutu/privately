@@ -12,7 +12,7 @@ const TopTeachers = () => {
       <h2 className="text-3xl font-medium">Top Teachers to taught</h2>
       <p className="sm:w-1/3 text-center text-sm">Simply browse through our extensive list of well-educated teachers.</p>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-5 gap-y-6 px-3 sm:px-0">
-        {teachers.slice(0, 10).map((item, index) => (
+        {(teachers || []).slice(0, 10).map((item, index) => (
           <div
             key={index}
             onClick={() => {
