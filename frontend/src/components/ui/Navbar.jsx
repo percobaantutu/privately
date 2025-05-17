@@ -36,7 +36,7 @@ function Navbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-2 cursor-pointer group relative">
-                <img src={assets.profile_pic || "/default-profile.png"} alt="user" className="w-10 h-10 rounded-full" />
+                <img src={user.image || assets.profile_pic || "/default-profile.png"} alt="user" className="w-10 h-10 rounded-full" />
                 <span className="font-semibold">{user.name}</span>
                 <img src={assets.dropdown_icon} alt="dropdown" className="w-2.5" />
               </div>

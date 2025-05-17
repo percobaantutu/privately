@@ -61,6 +61,22 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const updateUserProfile = async (profileData) => {
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/user/me`, profileData, {
+        withCredentials: true
+      });
+      if (data.success) {
+        setUser(data.user);
+        toast.success("Profile updated successfully");
+      } else {
+        toast.error(data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    }
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -69,7 +85,8 @@ export const AppProvider = ({ children }) => {
         loading,
         backendUrl,
         logout,
-        teachers
+        teachers,
+        updateUserProfile
       }}
     >
       {children}
