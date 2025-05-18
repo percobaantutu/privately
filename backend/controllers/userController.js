@@ -2,7 +2,6 @@ import validator from "validator";
 import bcrypt from "bcrypt";
 import userModel from "../models/userModel.js";
 import jwt from "jsonwebtoken";
-import cloudinary from "cloudinary";
 
 // Api for register user
 
@@ -154,88 +153,4 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
-// Update user profile (only name, phone, address)
-const updateUserProfile = async (req, res) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) {
-      return res.status(401).json({ success: false, message: "Not authenticated" });
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await userModel.findById(decoded.id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-    const { name, phone, address, gender, dob, image } = req.body;
-    if (name !== undefined) user.name = name;
-    if (phone !== undefined) user.phone = phone;
-    if (address !== undefined) user.address = address;
-    if (gender !== undefined) user.gender = gender;
-    if (dob !== undefined) user.dob = dob;
-    if (image !== undefined) user.image = image;
-    await user.save();
-    res.status(200).json({
-      success: true,
-      message: "Profile updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        gender: user.gender,
-        dob: user.dob,
-        image: user.image
-      }
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// New API for uploading user profile picture
-const uploadProfilePicture = async (req, res) => {
-  try {
-    const token = req.cookies.token;
-    if (!token) {
-      return res.status(401).json({ success: false, message: "Not authenticated" });
-    }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await userModel.findById(decoded.id);
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
-    const imageFile = req.file; // Assuming file is available on req.file via middleware
-
-    if (!imageFile) {
-      return res.status(400).json({ success: false, message: "Image file is required" });
-    }
-
-    // Upload image to Cloudinary (similar to addTeacher)
-    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
-      resource_type: "image",
-      folder: "user_profiles", // Optional: organize uploads into a folder
-      public_id: `user_${user._id}_${Date.now()}` // Optional: give a unique public ID
-    });
-    const imageUrl = imageUpload.secure_url;
-
-    // Update user's image URL in the database
-    user.image = imageUrl;
-    await user.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Profile picture uploaded successfully",
-      imageUrl: imageUrl // Send the new image URL back to the frontend
-    });
-
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-export { registerUser, loginUser, logoutUser, getCurrentUser, updateUserProfile, uploadProfilePicture };
+export { registerUser, loginUser, logoutUser, getCurrentUser };

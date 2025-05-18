@@ -7,6 +7,8 @@ import connectCloudinary from "./config/cloudinary.js";
 import adminRouter from "./routes/adminRoute.js";
 import teacherRouter from "./routes/teacherRoute.js";
 import userRouter from "./routes/userRoute.js";
+import bookingRoutes from "./routes/bookingRoute.js";
+import authRoute from "./routes/authRoute.js";
 
 // App Config
 const app = express();
@@ -26,6 +28,8 @@ app.use(cors({
 app.use("/api/admin", adminRouter);
 app.use("/api/teachers", teacherRouter);
 app.use("/api/user", userRouter);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/auth", authRoute);
 
 app.get("/", (req, res) => {
   res.send("API Working great yeaey!");
