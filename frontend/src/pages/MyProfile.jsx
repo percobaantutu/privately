@@ -37,7 +37,8 @@ function MyProfile() {
       const res = await axios.post(`${backendUrl}/api/auth/upload-profile-picture`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        withCredentials: true
       });
       if (res.data.success) {
         setUserData((prev) => ({ ...prev, image: res.data.imageUrl }));

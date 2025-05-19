@@ -12,6 +12,28 @@ const AppContextProvider = (props) => {
 
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+  // Placeholder for update user profile function
+  const updateUserProfile = async (profileData) => {
+    console.log("Attempting to update user profile with data:", profileData);
+    try {
+      const response = await axios.put(`${backendUrl}/api/auth/me`, profileData, { // Call backend PUT endpoint
+        withCredentials: true, // Important for sending cookie
+      });
+      if (response.data.success) {
+        setUser(response.data.user);
+        toast.success("Profile updated successfully!");
+        return true; // Indicate success
+      } else {
+        toast.error(response.data.message || "Failed to update profile.");
+        return false; // Indicate failure
+      }
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast.error("An error occurred while updating profile.");
+      return false; // Indicate failure
+    }
+  };
+
   const getTeachers = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/teachers/list`);
@@ -58,8 +80,9 @@ const AppContextProvider = (props) => {
     token,
     setToken,
     backendUrl,
-    user, // Include user state
-    setUser, // Include setUser function
+    user,
+    setUser,
+    updateUserProfile, // Include updateUserProfile function
   };
 
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
