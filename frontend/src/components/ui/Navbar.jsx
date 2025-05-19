@@ -6,17 +6,31 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { token, setToken, user, setUser } = useContext(AppContext);
+  const { token, setToken, user, setUser, backendUrl } = useContext(AppContext);
   const [showMenu, setShowMenu] = useState(false);
 
-  const logout = () => {
-    setToken(null);
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/login");
+  const logout = async () => {
+    try {
+      const response = await axios.get(`${backendUrl}/api/auth/logout`, {
+        withCredentials: true,
+      });
+
+      if (response.data.success) {
+        setUser(null);
+        toast.success("Logged out successfully!");
+        navigate("/login");
+      } else {
+        toast.error(response.data.message || "Logout failed on server.");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("An error occurred during logout.");
+    }
   };
 
   return (

@@ -34,7 +34,7 @@ function MyProfile() {
     const formData = new FormData();
     formData.append("image", file);
     try {
-      const res = await axios.post(`${backendUrl}/api/user/upload-profile-picture`, formData, {
+      const res = await axios.post(`${backendUrl}/api/auth/upload-profile-picture`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
