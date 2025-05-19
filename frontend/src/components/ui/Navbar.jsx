@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Button } from "./button";
 import { assets } from "@/assets/assets_frontend/assets";
@@ -9,8 +9,15 @@ import { AppContext } from "@/context/AppContext";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { user, logout } = useContext(AppContext);
+  const { token, setToken, user, setUser } = useContext(AppContext);
   const [showMenu, setShowMenu] = useState(false);
+
+  const logout = () => {
+    setToken(null);
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
+  };
 
   return (
     <div className="flex justify-between items-center border-gray-400 border-b py-2 mb-5 px-4 md:px-0">
@@ -37,7 +44,6 @@ function Navbar() {
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-2 cursor-pointer group relative">
                 <img src={user.image || assets.profile_pic || "/default-profile.png"} alt="user" className="w-10 h-10 rounded-full" />
-                <span className="font-semibold">{user.name}</span>
                 <img src={assets.dropdown_icon} alt="dropdown" className="w-2.5" />
               </div>
             </DropdownMenuTrigger>
