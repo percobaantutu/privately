@@ -62,7 +62,7 @@ const BookingConfirmation = ({ isOpen, onClose, sessionDetails, onConfirm }) => 
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Duration:</span>
-                <span className="font-medium">{sessionDetails?.duration} minutes</span>
+                <span className="font-medium">60 minutes</span>
               </div>
             </div>
 
