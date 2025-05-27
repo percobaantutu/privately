@@ -88,8 +88,8 @@ const Login = () => {
         {/* Switch login type */}
         {state === "Admin" ? (
           <p>
-            Doctor Login?{" "}
-            <span onClick={() => setState("Doctor")} className="text-primary underline cursor-pointer">
+            Teacher Login?{" "}
+            <span onClick={() => setState("Teacher")} className="text-primary underline cursor-pointer">
               Click here
             </span>
           </p>
