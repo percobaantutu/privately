@@ -37,20 +37,24 @@ function Navbar() {
     <div className="flex justify-between items-center border-gray-400 border-b py-2 mb-5 px-4 md:px-0">
       <img onClick={() => navigate("/")} src={assets.logo} alt="privately logo" className="w-36 cursor-pointer" />
 
-      <ul className="hidden md:flex justify-between gap-4 text-md font-semibold">
-        <NavLink to="/">
-          <li className="py-1">Home</li>
-        </NavLink>
-        <NavLink to="/teachers">
-          <li className="py-1">All Teachers</li>
-        </NavLink>
-        <NavLink to="/about">
-          <li className="py-1">About us</li>
-        </NavLink>
-        <NavLink to="/contact">
-          <li className="py-1">Contact</li>
-        </NavLink>
-      </ul>
+      {!user || user.role !== 'teacher' ? (
+        <ul className="hidden md:flex justify-between gap-4 text-md font-semibold">
+          <NavLink to="/">
+            <li className="py-1">Home</li>
+          </NavLink>
+          <NavLink to="/teachers">
+            <li className="py-1">All Teachers</li>
+          </NavLink>
+          <NavLink to="/about">
+            <li className="py-1">About us</li>
+          </NavLink>
+          <NavLink to="/contact">
+            <li className="py-1">Contact</li>
+          </NavLink>
+        </ul>
+      ) : (
+        <div className="hidden md:block"></div>
+      )}
 
       <div className="flex gap-4 items-center">
         {user ? (
@@ -64,7 +68,11 @@ function Navbar() {
             <DropdownMenuContent className="w-56">
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => navigate("/my-profile")}>My Profile</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/my-appointments")}>My Appointment</DropdownMenuItem>
+                {user.role === 'teacher' ? (
+                  <DropdownMenuItem onClick={() => navigate("/teacher/dashboard")}>Teacher Dashboard</DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => navigate("/my-appointments")}>My Appointment</DropdownMenuItem>
+                )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
@@ -93,20 +101,28 @@ function Navbar() {
                   <X size={28} />
                 </button>
               </div>
-              <ul className="flex flex-col gap-4 text-lg font-medium">
-                <NavLink to="/" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
-                  Home
-                </NavLink>
-                <NavLink to="/teachers" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
-                  All Teachers
-                </NavLink>
-                <NavLink to="/about" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
-                  About
-                </NavLink>
-                <NavLink to="/contact" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
-                  Contact
-                </NavLink>
-              </ul>
+              {!user || user.role !== 'teacher' ? (
+                <ul className="flex flex-col gap-4 text-lg font-medium">
+                  <NavLink to="/" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                    Home
+                  </NavLink>
+                  <NavLink to="/teachers" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                    All Teachers
+                  </NavLink>
+                  <NavLink to="/about" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                    About
+                  </NavLink>
+                  <NavLink to="/contact" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                    Contact
+                  </NavLink>
+                </ul>
+              ) : (
+                <ul className="flex flex-col gap-4 text-lg font-medium">
+                  <NavLink to="/teacher/dashboard" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                    Teacher Dashboard
+                  </NavLink>
+                </ul>
+              )}
             </motion.div>
           </>
         )}

@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "../utils/axios";
 import { toast } from "react-toastify";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
+import { AppContext } from "@/context/AppContext";
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
+  const { setUser } = useContext(AppContext);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -60,6 +62,11 @@ const TeacherLogin = () => {
       const response = await axios.post("/api/teachers/login", formData);
 
       if (response.data.success) {
+        // Set the teacher data in AppContext with role
+        setUser({
+          ...response.data.teacher,
+          role: 'teacher'
+        });
         toast.success("Login successful!");
         navigate("/teacher/dashboard");
       }
