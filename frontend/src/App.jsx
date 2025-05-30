@@ -18,6 +18,8 @@ import Profile from "./pages/TeacherDashboard/Profile";
 import Availability from "./pages/TeacherDashboard/Availability";
 import { ToastContainer, toast } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import SessionsOverview from "./pages/TeacherDashboard/Sessions/index.jsx";
+import SessionDetails from "./pages/TeacherDashboard/Sessions/SessionDetails.jsx";
 
 function App() {
   return (
@@ -42,6 +44,8 @@ function App() {
           <Route index element={<Profile />} />
           <Route path="profile" element={<Profile />} />
           <Route path="availability" element={<Availability />} />
+          <Route path="sessions" element={<SessionsOverview />} />
+          <Route path="sessions/:sessionId" element={<SessionDetails />} />
         </Route>
       </Routes>
       <ToastContainer />

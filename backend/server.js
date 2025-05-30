@@ -9,6 +9,7 @@ import teacherRouter from "./routes/teacherRoute.js";
 import userRouter from "./routes/userRoute.js";
 import bookingRoutes from "./routes/bookingRoute.js";
 import authRoute from "./routes/authRoute.js";
+import teacherSessionRouter from "./routes/teacherSessionRoute.js";
 
 // App Config
 const app = express();
@@ -30,6 +31,7 @@ app.use("/api/teachers", teacherRouter);
 app.use("/api/user", userRouter);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/auth", authRoute);
+app.use("/api/teacher/sessions", teacherSessionRouter);
 
 app.get("/", (req, res) => {
   res.send("API Working great yeaey!");

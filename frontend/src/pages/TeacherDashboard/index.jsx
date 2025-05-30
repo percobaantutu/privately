@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios from "../../utils/axios"; // Ensure correct path to your axios instance
 import { toast } from "react-toastify";
 
 const TeacherDashboard = () => {
@@ -10,29 +10,30 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     const fetchTeacherProfile = async () => {
+      setLoading(true);
       try {
-        const response = await axios.get("/api/teacher/profile", {
-          withCredentials: true
+        const response = await axios.get("/api/teachers/profile", { // No need for full backendUrl if axios is configured
+          withCredentials: true,
         });
         if (response.data.success) {
           setTeacher(response.data.teacher);
+        } else {
+          toast.error(response.data.message || "Failed to fetch profile");
+          navigate("/teacher/login");
         }
       } catch (error) {
-        toast.error("Failed to fetch profile");
+        toast.error(error.response?.data?.message || "Session expired or invalid. Please login.");
         navigate("/teacher/login");
       } finally {
         setLoading(false);
       }
     };
-
     fetchTeacherProfile();
   }, [navigate]);
 
   const handleLogout = async () => {
     try {
-      await axios.get("/api/auth/logout", {
-        withCredentials: true
-      });
+      await axios.get("/api/auth/logout", { withCredentials: true });
       navigate("/teacher/login");
     } catch (error) {
       toast.error("Logout failed");
@@ -49,7 +50,6 @@ const TeacherDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Navigation */}
       <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
@@ -59,26 +59,39 @@ const TeacherDashboard = () => {
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 <Link
-                  to="/teacher/dashboard"
-                  className="border-indigo-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  Overview
-                </Link>
-                <Link
-                  to="/teacher/dashboard/profile"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  to="/teacher/dashboard" // Or /teacher/dashboard/profile if that's the default
+                  className={({ isActive }) =>
+                    `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      isActive && (location.pathname === '/teacher/dashboard' || location.pathname === '/teacher/dashboard/profile')
+                        ? "border-indigo-500 text-gray-900"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    }`
+                  }
                 >
                   Profile
                 </Link>
                 <Link
                   to="/teacher/dashboard/availability"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={({ isActive }) =>
+                    `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      isActive
+                        ? "border-indigo-500 text-gray-900"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    }`
+                  }
                 >
                   Availability
                 </Link>
+                {/* === NEW SESSIONS LINK === */}
                 <Link
                   to="/teacher/dashboard/sessions"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
+                  className={({ isActive }) =>
+                    `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      isActive
+                        ? "border-indigo-500 text-gray-900"
+                        : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    }`
+                  }
                 >
                   Sessions
                 </Link>
@@ -97,18 +110,18 @@ const TeacherDashboard = () => {
                 </div>
               </div>
             </div>
+            {/* Mobile menu button can go here if you have one */}
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <Outlet context={{ teacher, setTeacher }} />
+          {teacher ? <Outlet context={{ teacher, setTeacher }} /> : null}
         </div>
       </main>
     </div>
   );
 };
 
-export default TeacherDashboard; 
+export default TeacherDashboard;
