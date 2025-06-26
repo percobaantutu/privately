@@ -1,28 +1,32 @@
+// backend/routes/bookingRoute.js (or sessionRoute.js)
+
 import express from "express";
 import {
   createBooking,
   getUserBookings,
   getTeacherBookings,
-  updateBookingStatus,
   cancelBooking,
+  confirmSession, // Import the new function
 } from "../controllers/bookingController.js";
-import { isAuthenticated } from "../middleware/auth.js";
+import { isAuthenticated, authorizeRoles } from "../middleware/auth.js";
+import validator from "validator";
 
 const router = express.Router();
 
-// Create a new booking
-router.post("/create", isAuthenticated, createBooking);
+// --- Student Routes ---
+// Students create bookings
+router.post("/create", isAuthenticated, authorizeRoles("student"), createBooking);
+// Students get their own bookings
+router.get("/user", isAuthenticated, authorizeRoles("student"), getUserBookings);
 
-// Get user's bookings
-router.get("/user", isAuthenticated, getUserBookings);
+// --- Teacher Routes ---
+// Teachers get their own bookings
+router.get("/teacher", isAuthenticated, authorizeRoles("teacher"), getTeacherBookings);
+// Teachers confirm a pending booking and add a link
+router.put("/:sessionId/confirm", isAuthenticated, authorizeRoles("teacher"), confirmSession);
 
-// Get teacher's bookings
-router.get("/teacher", isAuthenticated, getTeacherBookings);
-
-// Update booking status
-router.put("/:bookingId/status", isAuthenticated, updateBookingStatus);
-
-// Cancel booking
+// --- Shared Routes ---
+// Both students and teachers can cancel a session (rules applied in controller)
 router.put("/:bookingId/cancel", isAuthenticated, cancelBooking);
 
-export default router; 
+export default router;

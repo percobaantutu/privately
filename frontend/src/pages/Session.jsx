@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 
 function Session() {
   const { teacherId } = useParams();
+  console.log("FRONTEND: teacherId from URL is:", teacherId);
   const { teachers, currencySymbol, backendUrl } = useContext(AppContext);
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -31,13 +32,13 @@ function Session() {
   const generateAvailableDates = () => {
     const dates = [];
     const today = new Date();
-    
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       dates.push(date);
     }
-    
+
     setAvailableDates(dates);
   };
 
@@ -45,7 +46,7 @@ function Session() {
   const getAvailableSlots = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-    
+
     const maxDate = new Date();
     maxDate.setDate(today.getDate() + 6); // Maximum 6 days in advance
 
@@ -56,7 +57,7 @@ function Session() {
     const slots = [];
     const currentDate = new Date(selectedDate);
     currentDate.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
-    
+
     // Only generate slots if the selected date is within the allowed range
     if (currentDate >= today && currentDate <= maxDate) {
       const endTime = new Date(selectedDate);
@@ -91,7 +92,7 @@ function Session() {
       date: slot.dateTime.toLocaleDateString(),
       time: slot.time,
       duration: 60,
-      price: teacherInfo.fees
+      price: teacherInfo.fees,
     });
     setIsBookingModalOpen(true);
   };
@@ -188,9 +189,7 @@ function Session() {
               key={index}
               onClick={() => setSelectedDate(date)}
               className={`text-center py-3 px-6 rounded-full cursor-pointer transition-all duration-300 flex-shrink-0 ${
-                selectedDate.toDateString() === date.toDateString()
-                  ? 'bg-primary text-white'
-                  : 'border border-gray-200 hover:border-primary hover:text-primary'
+                selectedDate.toDateString() === date.toDateString() ? "bg-primary text-white" : "border border-gray-200 hover:border-primary hover:text-primary"
               }`}
             >
               <p className="font-medium">{daysOfWeek[date.getDay()]}</p>
@@ -211,9 +210,7 @@ function Session() {
                 onClick={() => handleSlotSelection(item)}
                 key={index}
                 className={`text-sm font-light px-5 py-2 rounded-full cursor-pointer transition-all duration-300 ${
-                  item.time === slotTime
-                    ? `bg-primary text-white`
-                    : `text-gray-400 border border-gray-300 hover:border-primary hover:text-primary`
+                  item.time === slotTime ? `bg-primary text-white` : `text-gray-400 border border-gray-300 hover:border-primary hover:text-primary`
                 }`}
               >
                 {item.time.toLowerCase()}
@@ -224,12 +221,7 @@ function Session() {
       </div>
 
       {/* Booking Confirmation Modal */}
-      <BookingConfirmation
-        isOpen={isBookingModalOpen}
-        onClose={() => setIsBookingModalOpen(false)}
-        sessionDetails={selectedSession}
-        onConfirm={handleBookingConfirm}
-      />
+      <BookingConfirmation isOpen={isBookingModalOpen} onClose={() => setIsBookingModalOpen(false)} sessionDetails={selectedSession} onConfirm={handleBookingConfirm} />
     </div>
   );
 }

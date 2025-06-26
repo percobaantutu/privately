@@ -1,10 +1,12 @@
+// backend/models/Session.js (rename from Booking.js)
+
 import mongoose from "mongoose";
 
-const bookingSchema = new mongoose.Schema(
+const sessionSchema = new mongoose.Schema(
   {
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Teacher",
+      ref: "User",
       required: true,
     },
     studentId: {
@@ -27,12 +29,12 @@ const bookingSchema = new mongoose.Schema(
     duration: {
       type: Number,
       required: true,
-      default: 30, // in minutes
+      default: 60,
     },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "cancelled", "completed"],
-      default: "pending",
+      enum: ["pending_confirmation", "confirmed", "completed", "cancelled"],
+      default: "pending_confirmation",
     },
     price: {
       type: Number,
@@ -41,12 +43,11 @@ const bookingSchema = new mongoose.Schema(
     paymentStatus: {
       type: String,
       enum: ["pending", "paid", "refunded"],
-      default: "pending",
+      default: "pending", // This will be updated once payment is integrated
     },
-    type: {
+    sessionLink: {
+      // The Zoom/GMeet link provided by the teacher
       type: String,
-      enum: ["online", "in-person"],
-      default: "online",
     },
     notes: {
       type: String,
@@ -58,9 +59,9 @@ const bookingSchema = new mongoose.Schema(
 );
 
 // Add index for efficient querying
-bookingSchema.index({ teacherId: 1, date: 1, startTime: 1 });
-bookingSchema.index({ studentId: 1, date: 1 });
+sessionSchema.index({ teacherId: 1, date: 1 });
+sessionSchema.index({ studentId: 1, date: 1 });
 
-const Booking = mongoose.model("Booking", bookingSchema);
+const Session = mongoose.models.Session || mongoose.model("Session", sessionSchema);
 
-export default Booking; 
+export default Session;

@@ -1,27 +1,19 @@
+// backend/routes/teacherRoute.js
+
 import express from "express";
-import { 
-  teacherList, 
-  registerTeacher, 
-  loginTeacher, 
-  getTeacherProfile, 
-  updateTeacherProfile, 
-  updateTeacherAvailability, 
-  getTeacherSessions 
-} from "../controllers/teacherController.js";
-import { isTeacher } from "../middleware/auth.js";
-import upload from "../middleware/multer.js";
+import { teacherList } from "../controllers/teacherController.js";
+import { isAuthenticated, authorizeRoles } from "../middleware/auth.js";
+// We will add getTeacherProfile later, for now we only need teacherList
 
 const teacherRouter = express.Router();
 
-// Public routes
-teacherRouter.post("/register", registerTeacher);
-teacherRouter.post("/login", loginTeacher);
+// PUBLIC ROUTE: Get a list of all verified teachers
 teacherRouter.get("/list", teacherList);
 
-// Protected routes (require teacher authentication)
-teacherRouter.get("/profile", isTeacher, getTeacherProfile);
-teacherRouter.put("/profile", isTeacher, updateTeacherProfile);
-teacherRouter.put("/availability", isTeacher, updateTeacherAvailability);
-teacherRouter.get("/sessions", isTeacher, getTeacherSessions);
+// PROTECTED ROUTE EXAMPLE (for the future):
+// This route would get the profile of the currently logged-in teacher.
+// We'll add the getTeacherProfile function back to a controller later.
+// For now, this shows the correct structure.
+// teacherRouter.get("/profile", isAuthenticated, authorizeRoles('teacher'), getTeacherProfile);
 
 export default teacherRouter;

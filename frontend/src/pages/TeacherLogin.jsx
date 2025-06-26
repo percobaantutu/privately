@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "../utils/axios";
 import { toast } from "react-toastify";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Eye, EyeOff } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
 
@@ -24,7 +24,7 @@ const TeacherLogin = () => {
 
   const validate = () => {
     const newErrors = {};
-    
+
     if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
@@ -39,34 +39,32 @@ const TeacherLogin = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: "",
       }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    // if (!validate()) return; // Add validation if needed
 
     setIsLoading(true);
     try {
-      const response = await axios.post("/api/teachers/login", formData);
+      // ✅ The endpoint is now the unified auth route
+      const response = await axios.post("/api/auth/login", formData);
 
       if (response.data.success) {
-        // Set the teacher data in AppContext with role
-        setUser({
-          ...response.data.teacher,
-          role: 'teacher'
-        });
+        // The role check is now handled on the backend (isVerified)
+        setUser(response.data.user);
         toast.success("Login successful!");
         navigate("/teacher/dashboard");
       }
@@ -90,14 +88,7 @@ const TeacherLogin = () => {
 
         <div className="w-full">
           <label className="block text-sm font-medium mb-1">Email</label>
-          <input
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Enter your email"
-          />
+          <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Enter your email" />
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
 
@@ -112,22 +103,14 @@ const TeacherLogin = () => {
               className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
               placeholder="Enter your password"
             />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2"
-            >
+            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2">
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
           {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full bg-primary text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50"
-        >
+        <button type="submit" disabled={isLoading} className="w-full bg-primary text-white py-2 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">
           {isLoading ? "Logging in..." : "Login"}
         </button>
 
@@ -142,4 +125,4 @@ const TeacherLogin = () => {
   );
 };
 
-export default TeacherLogin; 
+export default TeacherLogin;

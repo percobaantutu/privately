@@ -11,33 +11,18 @@ import { toast } from "react-toastify";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { token, setToken, user, setUser, backendUrl } = useContext(AppContext);
+  const { user, logout } = useContext(AppContext);
   const [showMenu, setShowMenu] = useState(false);
 
-  const logout = async () => {
-    try {
-      const response = await axios.get(`${backendUrl}/api/auth/logout`, {
-        withCredentials: true,
-      });
-
-      if (response.data.success) {
-        setUser(null);
-        toast.success("Logged out successfully!");
-        navigate("/login");
-      } else {
-        toast.error(response.data.message || "Logout failed on server.");
-      }
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("An error occurred during logout.");
-    }
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
   };
-
   return (
     <div className="flex justify-between items-center border-gray-400 border-b py-2 mb-5 px-4 md:px-0">
       <img onClick={() => navigate("/")} src={assets.logo} alt="privately logo" className="w-36 cursor-pointer" />
 
-      {!user || user.role !== 'teacher' ? (
+      {!user || user.role !== "teacher" ? (
         <ul className="hidden md:flex justify-between gap-4 text-md font-semibold">
           <NavLink to="/">
             <li className="py-1">Home</li>
@@ -68,14 +53,14 @@ function Navbar() {
             <DropdownMenuContent className="w-56">
               <DropdownMenuGroup>
                 <DropdownMenuItem onClick={() => navigate("/my-profile")}>My Profile</DropdownMenuItem>
-                {user.role === 'teacher' ? (
+                {user.role === "teacher" ? (
                   <DropdownMenuItem onClick={() => navigate("/teacher/dashboard")}>Teacher Dashboard</DropdownMenuItem>
                 ) : (
                   <DropdownMenuItem onClick={() => navigate("/my-appointments")}>My Appointment</DropdownMenuItem>
                 )}
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
@@ -101,7 +86,7 @@ function Navbar() {
                   <X size={28} />
                 </button>
               </div>
-              {!user || user.role !== 'teacher' ? (
+              {!user || user.role !== "teacher" ? (
                 <ul className="flex flex-col gap-4 text-lg font-medium">
                   <NavLink to="/" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
                     Home
@@ -118,7 +103,11 @@ function Navbar() {
                 </ul>
               ) : (
                 <ul className="flex flex-col gap-4 text-lg font-medium">
-                  <NavLink to="/teacher/dashboard" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}>
+                  <NavLink
+                    to="/teacher/dashboard"
+                    onClick={() => setShowMenu(false)}
+                    className={({ isActive }) => (isActive ? "bg-primary text-white font-semibold px-4 py-2 rounded-lg" : "text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100")}
+                  >
                     Teacher Dashboard
                   </NavLink>
                 </ul>

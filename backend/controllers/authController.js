@@ -1,114 +1,138 @@
-import userModel from "../models/userModel.js";
+import User from "../models/userModel.js"; // Note the model name change if you aliased it
+import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import cloudinary from "cloudinary";
+import validator from "validator";
 
-// Register user
+// Register a new user (student or teacher)
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      role,
+      // Teacher-specific data
+      speciality,
+      degree,
+      experience,
+      about,
+      fees,
+      address,
+    } = req.body;
 
-    // Check if user already exists
-    const userExists = await userModel.findOne({ email });
+    // --- Validation ---
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ success: false, message: "Please fill all required fields." });
+    }
+    if (!validator.isEmail(email)) {
+      return res.status(400).json({ success: false, message: "Please enter a valid email." });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
+    }
+    const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
+      return res.status(400).json({ success: false, message: "An account with this email already exists." });
     }
 
-    // Hash password
+    const userRole = role || "student";
+
+    // --- Hash Password ---
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create user
-    const user = await userModel.create({
-      name,
+    // ✅ THE FIX: Build the user data object BEFORE creating the model instance.
+    const userData = {
+      fullName,
       email,
       password: hashedPassword,
-      role: role || "student", // Default role is student
-    });
+      role: userRole,
+    };
 
-    // Generate token
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
+    // --- Role-Specific Logic ---
+    if (userRole === "teacher") {
+      // Teacher-specific validation
+      if (!speciality || !degree || !experience || !about || !fees || !address) {
+        return res.status(400).json({ success: false, message: "All teacher profile fields are required for registration." });
+      }
+      // Add the isVerified property to our data object
+      userData.isVerified = false;
+    } else {
+      // Add the isVerified property for students
+      userData.isVerified = true;
+    }
 
-    // Set cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
+    // ✅ Now create the new user instance with the complete data object
+    const newUser = new User(userData);
+    const savedUser = await newUser.save();
+
+    // If it was a teacher, create their profile now
+    if (userRole === "teacher") {
+      await TeacherProfile.create({
+        userId: savedUser._id,
+        speciality,
+        degree,
+        experience,
+        about,
+        hourlyRate: fees,
+        address,
+      });
+    }
 
     res.status(201).json({
       success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
+      message: `Registration successful! ${userRole === "teacher" ? "Your account is now pending admin verification." : "Please log in."}`,
     });
   } catch (error) {
     console.error("Register error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error in registration",
-    });
+    res.status(500).json({ success: false, message: "Server error during registration." });
   }
 };
 
-// Login user
+// Login any user (student, teacher, admin)
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check if user exists
-    const user = await userModel.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res.status(404).json({ success: false, message: "Invalid credentials." });
     }
 
-    // Check password
+    // Check if the teacher account is verified
+    if (user.role === "teacher" && !user.isVerified) {
+      return res.status(403).json({ success: false, message: "Your teacher account has not been verified yet." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email or password",
-      });
+      return res.status(401).json({ success: false, message: "Invalid credentials." });
     }
 
-    // Generate token
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ _id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "30d",
     });
 
-    // Set cookie
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    res.status(200).json({
-      success: true,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-    });
+    // Prepare user object for the response, excluding the password
+    const userResponse = {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      profilePicture: user.profilePicture,
+    };
+
+    res.status(200).json({ success: true, user: userResponse });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error in login",
-    });
+    res.status(500).json({ success: false, message: "Server error during login." });
   }
 };
 
@@ -127,7 +151,7 @@ export const logout = (req, res) => {
 // Get current user
 export const getMe = async (req, res) => {
   try {
-    const user = await userModel.findById(req.user._id).select("-password");
+    const user = req.user;
     res.status(200).json({
       success: true,
       user,
@@ -145,7 +169,7 @@ export const getMe = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     // Assuming isAuthenticated middleware has already attached user to req.user
-    const user = req.user;
+    const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -157,7 +181,7 @@ export const updateUserProfile = async (req, res) => {
     if (address !== undefined) user.address = address;
     if (gender !== undefined) user.gender = gender;
     if (dob !== undefined) user.dob = dob;
-     if (image !== undefined) user.image = image; // Allow updating image URL directly
+    if (image !== undefined) user.image = image; // Allow updating image URL directly
 
     await user.save();
 
@@ -173,8 +197,8 @@ export const updateUserProfile = async (req, res) => {
         gender: user.gender,
         dob: user.dob,
         image: user.image,
-        role: user.role // Include role in response
-      }
+        role: user.role, // Include role in response
+      },
     });
   } catch (error) {
     console.error("Update profile error:", error);
@@ -186,7 +210,7 @@ export const updateUserProfile = async (req, res) => {
 export const uploadProfilePicture = async (req, res) => {
   try {
     // Assuming isAuthenticated middleware has already attached user to req.user
-    const user = req.user;
+    const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -202,7 +226,7 @@ export const uploadProfilePicture = async (req, res) => {
     const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
       resource_type: "image",
       folder: "user_profiles", // Optional: organize uploads into a folder
-      public_id: `user_${user._id}_${Date.now()}` // Optional: give a unique public ID
+      public_id: `user_${user._id}_${Date.now()}`, // Optional: give a unique public ID
     });
     const imageUrl = imageUpload.secure_url;
 
@@ -214,17 +238,17 @@ export const uploadProfilePicture = async (req, res) => {
       success: true,
       message: "Profile picture uploaded successfully",
       imageUrl: imageUrl, // Send the new image URL back to the frontend
-       user: { // Optionally send updated user object
+      user: {
+        // Optionally send updated user object
         _id: user._id,
         name: user.name,
         email: user.email,
         image: user.image,
-        role: user.role // Include role in response
-      }
+        role: user.role, // Include role in response
+      },
     });
-
   } catch (error) {
     console.error("Upload profile picture error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
-}; 
+};
