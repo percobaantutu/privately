@@ -1,9 +1,12 @@
+// frontend/src/pages/MySessions.jsx
+
 import { Button } from "@/components/ui/button";
 import { AppContext } from "@/context/AppContext";
 import React, { useContext, useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../utils/axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import ReviewModal from "@/components/ui/ReviewModal"; // <-- IMPORT THE NEW MODAL
 
 function MySessions() {
   const { backendUrl } = useContext(AppContext);
@@ -11,36 +14,22 @@ function MySessions() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // State for the review modal
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const fetchBookings = async () => {
+    // ... (this function remains the same)
     try {
-      const { data } = await axios.get(`${backendUrl}/api/bookings/user`, {
-        withCredentials: true,
-      });
+      const { data } = await axios.get(`${backendUrl}/api/bookings/user`);
       if (data.success) {
         setBookings(data.bookings);
       }
     } catch (error) {
       toast.error("Failed to fetch bookings");
-      console.error("Error fetching bookings:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCancel = async (bookingId) => {
-    try {
-      const { data } = await axios.put(
-        `${backendUrl}/api/bookings/${bookingId}/cancel`,
-        {},
-        { withCredentials: true }
-      );
-      if (data.success) {
-        toast.success("Booking cancelled successfully");
-        fetchBookings(); // Refresh the bookings list
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to cancel booking";
-      toast.error(errorMessage);
     }
   };
 
@@ -48,86 +37,122 @@ function MySessions() {
     fetchBookings();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-gray-500">Loading your sessions...</p>
-      </div>
-    );
-  }
+  const handleOpenReviewModal = (sessionId) => {
+    setSelectedSessionId(sessionId);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setSelectedSessionId(null);
+    setIsReviewModalOpen(false);
+  };
+
+  const handleReviewSubmit = async ({ rating, comment }) => {
+    if (!selectedSessionId) return;
+    setIsSubmitting(true);
+    try {
+      const response = await axios.post(`${backendUrl}/api/reviews/session/${selectedSessionId}`, {
+        rating,
+        comment,
+      });
+
+      if (response.data.success) {
+        toast.success("Review submitted successfully!");
+        handleCloseReviewModal();
+        // Optionally, you can update the local state to show the review was submitted
+        setBookings((prev) => prev.map((b) => (b._id === selectedSessionId ? { ...b, reviewed: true } : b)));
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (bookingId) => {
+    // ... (this function remains the same)
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/bookings/${bookingId}/cancel`, {});
+      if (data.success) {
+        toast.success("Booking cancelled successfully");
+        fetchBookings();
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to cancel booking";
+      toast.error(errorMessage);
+    }
+  };
+
+  const getStatusClass = (status) => {
+    // ... (this function remains the same)
+    switch (status) {
+      case "confirmed":
+        return "text-blue-600 bg-blue-100";
+      case "completed":
+        return "text-green-600 bg-green-100";
+      case "cancelled":
+        return "text-red-600 bg-red-100";
+      case "pending_confirmation":
+        return "text-yellow-600 bg-yellow-100";
+      default:
+        return "text-gray-600 bg-gray-100";
+    }
+  };
 
   return (
-    <div>
-      <p className="pb-3 mt-12 text-lg font-medium text-gray-600 border-b">My Sessions</p>
-      {bookings.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">You don't have any sessions booked yet.</p>
-          <Button
-            className="mt-4 bg-primary text-white"
-            onClick={() => navigate("/teachers")}
-          >
-            Find a Teacher
-          </Button>
-        </div>
-      ) : (
-        <div>
-          {bookings.map((booking) => (
-            <div
-              className="grid grid-cols-[1fr_2fr] gap-4 sm:flex sm:gap-6 py-4 border-b"
-              key={booking._id}
-            >
-              <div>
-                <img
-                  src={booking.teacherId.image}
-                  className="w-32 bg-indigo-50"
-                  alt={booking.teacherId.name}
-                />
-              </div>
-              <div className="flex-1 text-sm text-[#5E5E5E]">
-                <p className="text-[#262626] text-base font-semibold">
-                  {booking.teacherId.name}
-                </p>
-                <p>{booking.teacherId.speciality}</p>
-                <p className="text-[#464646] font-medium mt-1">Session Details:</p>
-                <p>Date: {new Date(booking.date).toLocaleDateString()}</p>
-                <p>Time: {booking.startTime} - {booking.endTime}</p>
-                <p>Status: <span className={`font-medium ${
-                  booking.status === 'confirmed' ? 'text-green-600' :
-                  booking.status === 'cancelled' ? 'text-red-600' :
-                  booking.status === 'completed' ? 'text-blue-600' :
-                  'text-yellow-600'
-                }`}>{booking.status}</span></p>
-              </div>
-              <div className="flex flex-col gap-2 justify-end text-sm text-center">
-                {booking.status === 'pending' && (
-                  <>
-                    <Button
-                      className="text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-primary hover:text-white transition-all duration-300"
-                      onClick={() => navigate(`/session/${booking.teacherId._id}`)}
-                    >
-                      Reschedule
+    <>
+      <ReviewModal isOpen={isReviewModalOpen} onClose={handleCloseReviewModal} onSubmit={handleReviewSubmit} isLoading={isSubmitting} />
+      <div>
+        <p className="pb-3 mt-12 text-lg font-medium text-gray-600 border-b">My Sessions</p>
+        {loading ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">Loading...</p>
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500">You don't have any sessions booked yet.</p>
+            <Button className="mt-4 bg-primary text-white" onClick={() => navigate("/teachers")}>
+              Find a Teacher
+            </Button>
+          </div>
+        ) : (
+          <div>
+            {bookings.map((booking) => (
+              <div className="grid grid-cols-[1fr_2fr] sm:grid-cols-[100px_1fr_auto] gap-4 py-4 border-b items-center" key={booking._id}>
+                <img src={booking.teacherId.profilePicture} className="w-24 h-24 object-cover rounded-lg bg-indigo-50" alt={booking.teacherId.fullName} />
+                <div className="flex-1 text-sm text-[#5E5E5E]">
+                  <p className="text-[#262626] text-base font-semibold">{booking.teacherId.fullName}</p>
+                  <p className="text-gray-500">{booking.teacherId.speciality}</p>
+                  <p className="mt-1">Date: {new Date(booking.date).toLocaleDateString()}</p>
+                  <p>Time: {booking.startTime}</p>
+                  <p>
+                    Status: <span className={`font-medium capitalize px-2 py-0.5 rounded-full text-xs ${getStatusClass(booking.status)}`}>{booking.status.replace("_", " ")}</span>
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 justify-end text-sm text-center col-span-2 sm:col-span-1">
+                  {booking.status === "confirmed" && (
+                    <a href={booking.sessionLink} target="_blank" rel="noopener noreferrer">
+                      <Button className="w-full bg-green-600 hover:bg-green-700">Join Session</Button>
+                    </a>
+                  )}
+                  {booking.status === "pending_confirmation" && (
+                    <Button variant="destructive" className="w-full" onClick={() => handleCancel(booking._id)}>
+                      Cancel Booking
                     </Button>
-                    <Button
-                      className="text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-red-600 hover:text-white transition-all duration-300"
-                      onClick={() => handleCancel(booking._id)}
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                )}
-                {booking.status === 'confirmed' && (
-                  <Button
-                    className="text-[#696969] sm:min-w-48 py-2 border rounded hover:bg-green-600 hover:text-white transition-all duration-300"
-                  >
-                    Join Session
-                  </Button>
-                )}
+                  )}
+                  {booking.status === "completed" &&
+                    !booking.reviewed && ( // Assuming a 'reviewed' flag might be added later
+                      <Button variant="outline" className="w-full" onClick={() => handleOpenReviewModal(booking._id)}>
+                        Leave a Review
+                      </Button>
+                    )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 

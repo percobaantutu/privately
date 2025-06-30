@@ -1,14 +1,14 @@
 import express from "express";
 import cors from "cors";
-import cookieParser from 'cookie-parser';
+import cookieParser from "cookie-parser";
 import "dotenv/config";
 import connectDB from "./config/mongodb.js";
 import connectCloudinary from "./config/cloudinary.js";
 import adminRouter from "./routes/adminRoute.js";
 import teacherRouter from "./routes/teacherRoute.js";
-import userRouter from "./routes/userRoute.js";
 import bookingRoutes from "./routes/bookingRoute.js";
 import authRoute from "./routes/authRoute.js";
+import reviewRoute from "./routes/reviewRoute.js";
 
 // App Config
 const app = express();
@@ -19,17 +19,19 @@ connectCloudinary();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: 'http://localhost:5173', // your frontend URL
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "http://localhost:5174"], // Allow both frontend and admin
+    credentials: true,
+  })
+);
 
 // API Endpoints
 app.use("/api/admin", adminRouter);
 app.use("/api/teachers", teacherRouter);
-app.use("/api/user", userRouter);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/auth", authRoute);
+app.use("/api/reviews", reviewRoute);
 
 app.get("/", (req, res) => {
   res.send("API Working great yeaey!");

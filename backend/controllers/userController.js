@@ -40,24 +40,24 @@ const registerUser = async (req, res) => {
     await newUser.save();
 
     // Generate JWT token
-    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
     // Set HTTP-only cookie
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
-      sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      secure: process.env.NODE_ENV === "production", // Use secure in production
+      sameSite: "strict",
+      maxAge: 3600000, // 1 hour
     });
 
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "User registered successfully",
       user: {
         id: newUser._id,
         name: newUser.name,
-        email: newUser.email
-      }
+        email: newUser.email,
+      },
     });
   } catch (error) {
     console.log(error);
@@ -86,24 +86,24 @@ const loginUser = async (req, res) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
     // Set HTTP-only cookie
-    res.cookie('token', token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
-      sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      secure: process.env.NODE_ENV === "production", // Use secure in production
+      sameSite: "strict",
+      maxAge: 3600000, // 1 hour
     });
 
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      success: true,
       message: "User logged in successfully",
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (error) {
     console.log(error);
@@ -114,7 +114,7 @@ const loginUser = async (req, res) => {
 // Api for logout user
 const logoutUser = async (req, res) => {
   try {
-    res.clearCookie('token');
+    res.clearCookie("token");
     res.status(200).json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     console.log(error);
@@ -126,14 +126,14 @@ const logoutUser = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const token = req.cookies.token;
-    
+
     if (!token) {
       return res.status(401).json({ success: false, message: "Not authenticated" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await userModel.findById(decoded.id).select('-password');
-    
+    const user = await userModel.findById(decoded.id).select("-password");
+
     if (!user) {
       return res.status(401).json({ success: false, message: "User not found" });
     }
@@ -144,8 +144,8 @@ const getCurrentUser = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        image: user.image
-      }
+        image: user.image,
+      },
     });
   } catch (error) {
     console.log(error);

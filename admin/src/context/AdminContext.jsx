@@ -5,18 +5,18 @@ import { toast } from "react-toastify";
 export const AdminContext = createContext();
 
 export const AdminContextProvider = (props) => {
-  const [aToken, setAToken] = useState(localStorage.getItem("adminToken") ? localStorage.getItem("adminToken") : "");
-
-  const [teachers, setTeachers] = useState([]); // State to store teachers data
-
+  const [aToken, setAToken] = useState(localStorage.getItem("adminToken") || "");
+  const [teachers, setTeachers] = useState([]);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+  // UPDATED: Fetches from the new GET endpoint
   const getAllTeachers = async () => {
+    if (!aToken) return;
     try {
-      const { data } = await axios.post(`${backendUrl}/api/admin/all-teachers`, {}, { headers: { aToken } });
+      const { data } = await axios.get(`${backendUrl}/api/admin/all-teachers`, { headers: { aToken } });
       if (data.success) {
+        // The data structure now comes from the unified teacher list
         setTeachers(data.teachers);
-        console.log(data.teachers);
       } else {
         toast.error(data.message);
       }
@@ -25,12 +25,13 @@ export const AdminContextProvider = (props) => {
     }
   };
 
+  // UPDATED: This now toggles the 'isActive' status via the new PUT endpoint
   const changeAvailability = async (teacherId) => {
     try {
-      const { data } = await axios.post(`${backendUrl}/api/admin/change-availability`, { teacherId }, { headers: { aToken } });
+      const { data } = await axios.put(`${backendUrl}/api/admin/teacher-status`, { teacherId }, { headers: { aToken } });
       if (data.success) {
         toast.success(data.message);
-        getAllTeachers();
+        getAllTeachers(); // Refresh the list to show the new status
       } else {
         toast.error(data.message);
       }

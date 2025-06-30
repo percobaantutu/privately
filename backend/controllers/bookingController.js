@@ -2,7 +2,6 @@
 
 import Session from "../models/Session.js";
 import TeacherProfile from "../models/teacherProfile.js"; // ✅ FIX: Corrected casing from teacherProfile.js
-import User from "../models/userModel.js";
 import validator from "validator"; // ✅ FIX: Added import for validator
 
 // Student: Create a new session booking
@@ -191,5 +190,46 @@ export const cancelBooking = async (req, res) => {
   } catch (error) {
     console.error("Cancel booking error:", error);
     res.status(500).json({ success: false, message: "Error cancelling session." });
+  }
+};
+
+export const completeSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const teacherId = req.user._id;
+
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({ success: false, message: "Session not found." });
+    }
+
+    // 1. Authorization: Only the teacher of this session can mark it as complete.
+    if (session.teacherId.toString() !== teacherId.toString()) {
+      return res.status(403).json({ success: false, message: "You are not authorized to complete this session." });
+    }
+
+    // 2. Status Check: Can only complete a 'confirmed' session.
+    if (session.status !== "confirmed") {
+      return res.status(400).json({ success: false, message: `Cannot complete a session with status: ${session.status}` });
+    }
+
+    // 3. Time Check (Optional but good practice): Prevent completing sessions far in the future.
+    const sessionStartTime = new Date(session.date).getTime();
+    if (Date.now() < sessionStartTime - 30 * 60 * 1000) {
+      // Allows completion 30 mins before start
+      return res.status(400).json({ success: false, message: "Cannot complete a session that is still far in the future." });
+    }
+
+    // 4. Update the status
+    session.status = "completed";
+    await session.save();
+
+    // TODO (Phase 4): This is where we will trigger commission calculation and add to teacher's earnings.
+
+    res.status(200).json({ success: true, message: "Session marked as completed successfully.", session });
+  } catch (error) {
+    console.error("Complete session error:", error);
+    res.status(500).json({ success: false, message: "Error completing session." });
   }
 };

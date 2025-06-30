@@ -9,6 +9,7 @@ import Dashboard from "./pages/Admin/Dashboard.jsx";
 import Appointments from "./pages/Admin/Appointments.jsx";
 import AddTeacher from "./pages/Admin/AddTeacher.jsx";
 import TeacherList from "./pages/Admin/TeacherList.jsx";
+import Verification from "./pages/Admin/Verification";
 
 const App = () => {
   const { aToken } = useContext(AdminContext);
@@ -25,6 +26,7 @@ const App = () => {
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/add-teacher" element={<AddTeacher />} />
           <Route path="/teacher-list" element={<TeacherList />} />
+          <Route path="/verification" element={<Verification />} />
         </Routes>
       </div>
     </div>

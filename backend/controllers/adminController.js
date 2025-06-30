@@ -1,10 +1,11 @@
-import validator from "validator";
+import User from "../models/userModel.js";
+import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
-import { v2 as cloudinary } from "cloudinary";
-import teacherModel from "../models/teacherModel.js";
 import jwt from "jsonwebtoken";
+import { v2 as cloudinary } from "cloudinary";
 
-const addTeacher = async (req, res) => {
+// Admin can add a new teacher, who will be auto-verified.
+const addTeacherByAdmin = async (req, res) => {
   try {
     const { name, email, password, speciality, degree, experience, about, fees, address } = req.body;
     const imageFile = req.file;
@@ -13,82 +14,156 @@ const addTeacher = async (req, res) => {
       return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ success: false, message: "Invalid email address" });
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: "An account with this email already exists." });
     }
 
-    if (password.length < 8) {
-      return res.status(400).json({ success: false, message: "Password must be at least 8 characters long" });
-    }
-
-    // 🔥 Check if image is uploaded
-    if (!imageFile) {
-      return res.status(400).json({ success: false, message: "Image file is required" });
-    }
-
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Upload image to Cloudinary
-    const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
-      resource_type: "image",
-    });
-    const imageUrl = imageUpload.secure_url;
+    const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
 
-    const teacherData = {
-      name,
+    const newUser = new User({
+      fullName: name,
       email,
       password: hashedPassword,
+      role: "teacher",
+      profilePicture: imageUpload.secure_url,
+      isVerified: true, // Teachers added by admin are automatically verified
+      isActive: true,
+    });
 
+    const savedUser = await newUser.save();
+
+    await TeacherProfile.create({
+      userId: savedUser._id,
       speciality,
       degree,
       experience,
       about,
-      fees,
+      hourlyRate: Number(fees),
       address: JSON.parse(address),
-      date: Date.now(),
-      image: imageUrl,
-    };
+    });
 
-    const newTeacher = new teacherModel(teacherData);
-    await newTeacher.save();
-
-    res.status(201).json({ success: true, message: "Teacher added successfully", data: newTeacher });
+    res.status(201).json({ success: true, message: "Teacher added and verified successfully." });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Admin add teacher error:", error);
+    res.status(500).json({ success: false, message: "Server error while adding teacher." });
   }
 };
 
-//Api for login admin
-
+// Admin login remains the same.
 const loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
-
     if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
       const token = jwt.sign(email + password, process.env.JWT_SECRET);
       res.json({ success: true, token });
-
-      return res.status(200).json({ success: true, message: "Login successful" });
     } else {
       res.status(401).json({ success: false, message: "Invalid credentials" });
     }
   } catch (error) {
     console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error during login." });
   }
 };
 
-const allTeachers = async (req, res) => {
+// This function toggles the teacher's 'isActive' status.
+const updateTeacherStatus = async (req, res) => {
   try {
-    const teachers = await teacherModel.find({}).select("-password");
-    res.status(200).json({ success: true, teachers });
+    const { teacherId } = req.body;
+    const teacher = await User.findById(teacherId);
+
+    if (!teacher || teacher.role !== "teacher") {
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    teacher.isActive = !teacher.isActive;
+    await teacher.save();
+
+    res.status(200).json({ success: true, message: `Teacher status updated to ${teacher.isActive ? "Active" : "Inactive"}` });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Update teacher status error:", error);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
 
-export { addTeacher, loginAdmin, allTeachers };
+const getAllTeachersForAdmin = async (req, res) => {
+  try {
+    // Find all users with the role of 'teacher', regardless of their 'isActive' or 'isVerified' status.
+    const teachersAsUsers = await User.find({ role: "teacher" }).select("-password").lean();
+
+    if (!teachersAsUsers.length) {
+      return res.status(200).json({ success: true, teachers: [] });
+    }
+
+    const teacherUserIds = teachersAsUsers.map((teacher) => teacher._id);
+
+    const teacherProfiles = await TeacherProfile.find({
+      userId: { $in: teacherUserIds },
+    }).lean();
+
+    const profileMap = new Map(teacherProfiles.map((profile) => [profile.userId.toString(), profile]));
+
+    const fullTeacherData = teachersAsUsers.map((user) => {
+      const profile = profileMap.get(user._id.toString());
+      return {
+        // Combine user and profile data
+        ...user,
+        // Ensure primary _id is from the user model
+        _id: user._id,
+        fullName: user.fullName,
+        profilePicture: user.profilePicture,
+        speciality: profile?.speciality,
+        degree: profile?.degree,
+        experience: profile?.experience,
+        fees: profile?.hourlyRate,
+        // Add any other fields the admin list might need
+      };
+    });
+
+    res.status(200).json({ success: true, teachers: fullTeacherData });
+  } catch (error) {
+    console.error("Error fetching all teachers for admin:", error);
+    res.status(500).json({ success: false, message: "Error fetching teacher list for admin." });
+  }
+};
+
+const getPendingTeachers = async (req, res) => {
+  try {
+    // Find users who are teachers but are not yet verified
+    const pendingTeachers = await User.find({ role: "teacher", isVerified: false }).select("-password").lean();
+    res.status(200).json({ success: true, teachers: pendingTeachers });
+  } catch (error) {
+    console.error("Error fetching pending teachers:", error);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// NEW FUNCTION 2: Verify a specific teacher
+const verifyTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params; // Get the ID from the URL parameter
+
+    const teacher = await User.findById(teacherId);
+
+    if (!teacher || teacher.role !== "teacher") {
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    if (teacher.isVerified) {
+      return res.status(400).json({ success: false, message: "This teacher is already verified." });
+    }
+
+    teacher.isVerified = true;
+    await teacher.save();
+
+    res.status(200).json({ success: true, message: "Teacher has been successfully verified." });
+  } catch (error) {
+    console.error("Error verifying teacher:", error);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export { addTeacherByAdmin, loginAdmin, updateTeacherStatus, getAllTeachersForAdmin, getPendingTeachers, verifyTeacher };

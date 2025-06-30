@@ -28,27 +28,28 @@ const AddTeacher = () => {
         return toast.error("Please upload an image");
       }
       setLoading(true);
+
+      // FormData is still the correct approach because we are uploading a file.
       const formData = new FormData();
       formData.append("image", image);
-      formData.append("name", name);
+      formData.append("name", name); // Controller expects 'name', which it maps to 'fullName'
       formData.append("email", email);
       formData.append("password", password);
       formData.append("experience", experience);
       formData.append("fees", Number(fees));
       formData.append("speciality", speciality);
       formData.append("degree", degree);
+      // The backend expects 'address' as a stringified JSON object
       formData.append("address", JSON.stringify({ line1: address1, line2: address2 }));
       formData.append("about", about);
 
-      formData.forEach((value, key) => {
-        console.log(`${key}, ${value}`);
-      });
-
+      // The endpoint has been refactored on the backend, but the URL is the same.
       const { data } = await axios.post(`${backendUrl}/api/admin/add-teacher`, formData, { headers: { aToken } });
 
       if (data.success) {
         toast.success(data.message);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        // Clear the form after successful submission
         setImage(false);
         setName("");
         setEmail("");
@@ -64,7 +65,7 @@ const AddTeacher = () => {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || "An error occurred");
       console.log(error);
     } finally {
       setLoading(false);
@@ -79,9 +80,9 @@ const AddTeacher = () => {
         {/* Upload */}
         <div className="flex items-center gap-4 mb-8 text-gray-500">
           <label htmlFor="teacher-img">
-            <img className="w-16 bg-gray-100 rounded-full cursor-pointer" src={image ? URL.createObjectURL(image) : assets.upload_area} alt="" />
+            <img className="w-16 h-16 bg-gray-100 rounded-full cursor-pointer object-cover" src={image ? URL.createObjectURL(image) : assets.upload_area} alt="" />
           </label>
-          <input type="file" id="teacher-img" hidden onChange={(e) => setImage(e.target.files[0])} />
+          <input type="file" id="teacher-img" hidden onChange={(e) => setImage(e.target.files[0])} required />
           <p>
             Upload Teacher <br /> picture
           </p>
@@ -92,7 +93,7 @@ const AddTeacher = () => {
           {/* Left */}
           <div className="w-full lg:flex-1 flex flex-col gap-4">
             <div className="flex-1 flex flex-col gap-1">
-              <p>Your name</p>
+              <p>Full Name</p>
               <input className="border rounded px-3 py-2" type="text" placeholder="Name" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="flex-1 flex flex-col gap-1">
@@ -143,8 +144,8 @@ const AddTeacher = () => {
             </div>
             <div className="flex-1 flex flex-col gap-1">
               <p>Address</p>
-              <input className="border rounded px-3 py-2" type="text" placeholder="Address 1" required value={address1} onChange={(e) => setAddress1(e.target.value)} />
-              <input className="border rounded px-3 py-2" type="text" placeholder="Address 2" required value={address2} onChange={(e) => setAddress2(e.target.value)} />
+              <input className="border rounded px-3 py-2" type="text" placeholder="Address Line 1" required value={address1} onChange={(e) => setAddress1(e.target.value)} />
+              <input className="border rounded px-3 py-2 mt-2" type="text" placeholder="Address Line 2" required value={address2} onChange={(e) => setAddress2(e.target.value)} />
             </div>
           </div>
         </div>
@@ -152,17 +153,14 @@ const AddTeacher = () => {
         {/* About */}
         <div>
           <p className="mt-4 mb-2">About Teacher</p>
-          <textarea className="w-full px-4 pt-2 border rounded" rows="5" placeholder="Write about Teacher" value={about} onChange={(e) => setAbout(e.target.value)}></textarea>
+          <textarea className="w-full px-4 pt-2 border rounded" rows="5" placeholder="Write about Teacher" value={about} onChange={(e) => setAbout(e.target.value)} required></textarea>
         </div>
 
         <button type="submit" className="bg-primary px-10 py-3 mt-4 text-white rounded-full cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50" disabled={loading}>
           {loading ? (
             <>
-              <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"></path>
-              </svg>
-              Loading...
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Loading...</span>
             </>
           ) : (
             "Add Teacher"
