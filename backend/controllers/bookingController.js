@@ -165,28 +165,66 @@ export const updateBookingStatus = async (req, res) => {
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
+    const cancelingUser = req.user; // User object from isAuthenticated middleware
+
     const session = await Session.findById(bookingId);
 
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
     }
 
-    if (session.studentId.toString() !== req.user._id.toString() && session.teacherId.toString() !== req.user._id.toString()) {
+    // Authorization check
+    if (session.studentId.toString() !== cancelingUser._id.toString() && session.teacherId.toString() !== cancelingUser._id.toString()) {
       return res.status(403).json({ success: false, message: "Not authorized to cancel this session." });
     }
 
-    const sessionTime = new Date(session.date).getTime();
-    const now = new Date().getTime();
-    const hoursUntil = (sessionTime - now) / (1000 * 60 * 60);
-
-    if (req.user.role === "student" && hoursUntil < 2) {
-      return res.status(400).json({ success: false, message: "Cannot cancel less than 2 hours before the session." });
+    // Prevent cancelling sessions that are not confirmed or pending
+    if (session.status !== "pending_confirmation" && session.status !== "confirmed") {
+      return res.status(400).json({ success: false, message: `Cannot cancel a session with status: ${session.status}` });
     }
 
+    // --- Cancellation Logic ---
     session.status = "cancelled";
-    await session.save();
 
-    res.status(200).json({ success: true, message: "Session cancelled successfully", booking: session });
+    // CASE 1: Teacher initiates cancellation
+    if (cancelingUser.role === "teacher") {
+      // No payment to the tutor. Student gets a full refund (handled by payment system later).
+      await session.save();
+      return res.status(200).json({ success: true, message: "Session cancelled successfully. The student has been notified." });
+    }
+
+    // CASE 2: Student initiates cancellation
+    if (cancelingUser.role === "student") {
+      const sessionTime = new Date(session.date).getTime();
+      const now = new Date().getTime();
+      const hoursUntil = (sessionTime - now) / (1000 * 60 * 60);
+
+      // Sub-case 2.1: More than 24 hours notice
+      if (hoursUntil > 24) {
+        await session.save();
+        return res.status(200).json({ success: true, message: "Session cancelled successfully. A full refund will be processed." });
+      }
+
+      // Sub-case 2.2: Between 2 and 24 hours notice
+      if (hoursUntil >= 2 && hoursUntil <= 24) {
+        const tutorPayment = session.price * 0.5; // Tutor gets 50%
+        await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: tutorPayment } });
+        await session.save();
+        return res.status(200).json({ success: true, message: "Session cancelled. A 50% refund will be processed and the tutor has been compensated." });
+      }
+
+      // Sub-case 2.3: Less than 2 hours notice (or No-Show scenario)
+      if (hoursUntil < 2) {
+        const tutorPayment = session.price * 0.95; // Tutor gets full fee minus 5% platform commission
+        await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: tutorPayment } });
+        await session.save();
+        return res.status(200).json({ success: true, message: "Cancellation is within 2 hours. No refund is applicable and the tutor has been paid." });
+      }
+    }
+
+    // Fallback in case role is not student/teacher (should not happen with authorizeRoles)
+    await session.save();
+    res.status(200).json({ success: true, message: "Session cancelled." });
   } catch (error) {
     console.error("Cancel booking error:", error);
     res.status(500).json({ success: false, message: "Error cancelling session." });

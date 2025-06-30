@@ -6,7 +6,8 @@ import React, { useContext, useEffect, useState } from "react";
 import axios from "../utils/axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
-import ReviewModal from "@/components/ui/ReviewModal"; // <-- IMPORT THE NEW MODAL
+import ReviewModal from "@/components/ui/ReviewModal";
+import CancellationModal from "@/components/ui/CancellationModal";
 
 function MySessions() {
   const { backendUrl } = useContext(AppContext);
@@ -19,6 +20,11 @@ function MySessions() {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [sessionToCancel, setSessionToCancel] = useState(null);
+  const [cancellationInfo, setCancellationInfo] = useState({ message: "" });
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const fetchBookings = async () => {
     // ... (this function remains the same)
     try {
@@ -30,6 +36,49 @@ function MySessions() {
       toast.error("Failed to fetch bookings");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenCancelModal = (booking) => {
+    const sessionTime = new Date(booking.date).getTime();
+    const now = new Date().getTime();
+    const hoursUntil = (sessionTime - now) / (1000 * 60 * 60);
+
+    let info = {};
+    if (hoursUntil > 24) {
+      info.message = "You are cancelling more than 24 hours in advance. You will receive a full refund.";
+    } else if (hoursUntil >= 2 && hoursUntil <= 24) {
+      info.message = "You are cancelling between 2 and 24 hours before the session. You will receive a 50% refund.";
+    } else {
+      info.message = "You are cancelling less than 2 hours before the session. This cancellation is not eligible for a refund.";
+    }
+
+    setSessionToCancel(booking);
+    setCancellationInfo(info);
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCloseCancelModal = () => {
+    setIsCancelModalOpen(false);
+    setSessionToCancel(null);
+  };
+
+  const confirmCancellation = async () => {
+    if (!sessionToCancel) return;
+    setIsCancelling(true);
+    try {
+      const { data } = await axios.put(`${backendUrl}/api/bookings/${sessionToCancel._id}/cancel`);
+      if (data.success) {
+        toast.success(data.message);
+        fetchBookings(); // Refresh the list
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to cancel booking");
+    } finally {
+      setIsCancelling(false);
+      handleCloseCancelModal();
     }
   };
 
@@ -102,6 +151,7 @@ function MySessions() {
   return (
     <>
       <ReviewModal isOpen={isReviewModalOpen} onClose={handleCloseReviewModal} onSubmit={handleReviewSubmit} isLoading={isSubmitting} />
+      <CancellationModal isOpen={isCancelModalOpen} onClose={handleCloseCancelModal} onConfirm={confirmCancellation} isLoading={isCancelling} cancellationInfo={cancellationInfo} />
       <div>
         <p className="pb-3 mt-12 text-lg font-medium text-gray-600 border-b">My Sessions</p>
         {loading ? (
@@ -140,12 +190,11 @@ function MySessions() {
                       Cancel Booking
                     </Button>
                   )}
-                  {booking.status === "completed" &&
-                    !booking.reviewed && ( // Assuming a 'reviewed' flag might be added later
-                      <Button variant="outline" className="w-full" onClick={() => handleOpenReviewModal(booking._id)}>
-                        Leave a Review
-                      </Button>
-                    )}
+                  {(booking.status === "pending_confirmation" || booking.status === "confirmed") && (
+                    <Button variant="destructive" className="w-full" onClick={() => handleOpenCancelModal(booking)}>
+                      Cancel Booking
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
