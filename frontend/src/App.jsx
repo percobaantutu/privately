@@ -19,6 +19,7 @@ import Availability from "./pages/TeacherDashboard/Availability";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Sessions from "./pages/TeacherDashboard/Sessions";
+import Earnings from "./pages/TeacherDashboard/Earnings";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
           <Route path="profile" element={<Profile />} />
           <Route path="availability" element={<Availability />} />
           <Route path="sessions" element={<Sessions />} />
+          <Route path="earnings" element={<Earnings />} />
         </Route>
       </Routes>
       <ToastContainer />

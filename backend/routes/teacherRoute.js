@@ -1,7 +1,9 @@
 // backend/routes/teacherRoute.js
 
 import express from "express";
-import { teacherList } from "../controllers/teacherController.js";
+
+import { teacherList, getTeacherEarnings } from "../controllers/teacherController.js";
+
 import { isAuthenticated, authorizeRoles } from "../middleware/auth.js";
 // We will add getTeacherProfile later, for now we only need teacherList
 
@@ -9,6 +11,7 @@ const teacherRouter = express.Router();
 
 // PUBLIC ROUTE: Get a list of all verified teachers
 teacherRouter.get("/list", teacherList);
+teacherRouter.get("/me/earnings", isAuthenticated, authorizeRoles("teacher"), getTeacherEarnings);
 
 // PROTECTED ROUTE EXAMPLE (for the future):
 // This route would get the profile of the currently logged-in teacher.

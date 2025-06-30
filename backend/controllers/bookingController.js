@@ -204,28 +204,32 @@ export const completeSession = async (req, res) => {
       return res.status(404).json({ success: false, message: "Session not found." });
     }
 
-    // 1. Authorization: Only the teacher of this session can mark it as complete.
     if (session.teacherId.toString() !== teacherId.toString()) {
       return res.status(403).json({ success: false, message: "You are not authorized to complete this session." });
     }
 
-    // 2. Status Check: Can only complete a 'confirmed' session.
     if (session.status !== "confirmed") {
       return res.status(400).json({ success: false, message: `Cannot complete a session with status: ${session.status}` });
     }
 
-    // 3. Time Check (Optional but good practice): Prevent completing sessions far in the future.
     const sessionStartTime = new Date(session.date).getTime();
     if (Date.now() < sessionStartTime - 30 * 60 * 1000) {
-      // Allows completion 30 mins before start
       return res.status(400).json({ success: false, message: "Cannot complete a session that is still far in the future." });
     }
 
-    // 4. Update the status
+    // Update the status
     session.status = "completed";
     await session.save();
 
-    // TODO (Phase 4): This is where we will trigger commission calculation and add to teacher's earnings.
+    // ✅ START: PHASE 4 - Commission and Earnings Logic
+    const commissionRate = 0.05; // 5%
+    const sessionPrice = session.price;
+    const commissionAmount = sessionPrice * commissionRate;
+    const netEarnings = sessionPrice - commissionAmount;
+
+    // Atomically increment the teacher's earnings in their profile
+    await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: netEarnings } });
+    // ✅ END: PHASE 4 - Commission and Earnings Logic
 
     res.status(200).json({ success: true, message: "Session marked as completed successfully.", session });
   } catch (error) {
