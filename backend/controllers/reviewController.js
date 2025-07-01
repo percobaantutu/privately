@@ -3,6 +3,7 @@
 import Review from "../models/Review.js";
 import Session from "../models/Session.js";
 import TeacherProfile from "../models/teacherProfile.js";
+import { createNotification } from "./notificationController.js";
 import User from "../models/userModel.js"; // We need this for populating student info
 
 // Helper function to calculate and update a teacher's average rating
@@ -55,6 +56,7 @@ export const createReview = async (req, res) => {
 
     await newReview.save();
     await updateTeacherRating(session.teacherId);
+    await createNotification(session.teacherId, "new_review", `${req.user.fullName} left a ${rating}-star review for your recent session.`, `/session/${session.teacherId}`);
 
     res.status(201).json({ success: true, message: "Thank you for your review!", review: newReview });
   } catch (error) {
@@ -73,5 +75,20 @@ export const getTeacherReviews = async (req, res) => {
   } catch (error) {
     console.error("Get reviews error:", error);
     res.status(500).json({ success: false, message: "Server error while fetching reviews." });
+  }
+};
+
+export const checkReviewExists = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const existingReview = await Review.findOne({ sessionId: sessionId, studentId: req.user._id });
+
+    if (existingReview) {
+      res.status(200).json({ success: true, exists: true });
+    } else {
+      res.status(200).json({ success: true, exists: false });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error checking review." });
   }
 };

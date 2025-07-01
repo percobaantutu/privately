@@ -3,6 +3,7 @@ import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
+import { createNotification } from "./notificationController.js";
 
 // Admin can add a new teacher, who will be auto-verified.
 const addTeacherByAdmin = async (req, res) => {
@@ -158,6 +159,7 @@ const verifyTeacher = async (req, res) => {
 
     teacher.isVerified = true;
     await teacher.save();
+    await createNotification(teacher._id, "account_verified", "Congratulations! Your account has been verified and is now live.", "/teacher/dashboard/profile");
 
     res.status(200).json({ success: true, message: "Teacher has been successfully verified." });
   } catch (error) {

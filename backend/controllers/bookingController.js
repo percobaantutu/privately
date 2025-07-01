@@ -1,8 +1,8 @@
-// backend/controllers/bookingController.js
-
 import Session from "../models/Session.js";
-import TeacherProfile from "../models/teacherProfile.js"; // ✅ FIX: Corrected casing from teacherProfile.js
-import validator from "validator"; // ✅ FIX: Added import for validator
+import TeacherProfile from "../models/teacherProfile.js";
+import validator from "validator"; //
+import { createNotification } from "./notificationController.js";
+import User from "../models/userModel.js";
 
 // Student: Create a new session booking
 export const createBooking = async (req, res) => {
@@ -54,6 +54,7 @@ export const createBooking = async (req, res) => {
     });
 
     await newSession.save();
+    await createNotification(teacherId, "new_booking", `${req.user.fullName} has requested a session with you.`, "/teacher/dashboard/sessions");
 
     res.status(201).json({
       success: true,
@@ -91,6 +92,7 @@ export const confirmSession = async (req, res) => {
     session.sessionLink = sessionLink;
     session.status = "confirmed";
     await session.save();
+    await createNotification(session.studentId, "booking_confirmed", `Your session with ${req.user.fullName} on ${new Date(session.date).toLocaleDateString()} has been confirmed.`, "/my-appointments");
 
     res.status(200).json({ success: true, message: "Session confirmed successfully.", session });
   } catch (error) {
@@ -167,7 +169,7 @@ export const cancelBooking = async (req, res) => {
     const { bookingId } = req.params;
     const cancelingUser = req.user; // User object from isAuthenticated middleware
 
-    const session = await Session.findById(bookingId);
+    const session = await Session.findById(bookingId).populate("studentId", "fullName").populate("teacherId", "fullName");
 
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
@@ -190,6 +192,11 @@ export const cancelBooking = async (req, res) => {
     if (cancelingUser.role === "teacher") {
       // No payment to the tutor. Student gets a full refund (handled by payment system later).
       await session.save();
+      if (cancelingUser.role === "student") {
+        await createNotification(session.teacherId._id, "booking_cancelled_by_student", `${session.studentId.fullName} cancelled your upcoming session.`, "/teacher/dashboard/sessions");
+      } else if (cancelingUser.role === "teacher") {
+        await createNotification(session.studentId._id, "booking_cancelled_by_teacher", `Your session with ${session.teacherId.fullName} has been cancelled.`, "/my-appointments");
+      }
       return res.status(200).json({ success: true, message: "Session cancelled successfully. The student has been notified." });
     }
 
@@ -269,6 +276,7 @@ export const completeSession = async (req, res) => {
     await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: netEarnings } });
     // ✅ END: PHASE 4 - Commission and Earnings Logic
 
+    await createNotification(session.studentId, "session_completed", `Your session with ${req.user.fullName} is complete. We'd love to hear your feedback!`, "/my-appointments");
     res.status(200).json({ success: true, message: "Session marked as completed successfully.", session });
   } catch (error) {
     console.error("Complete session error:", error);

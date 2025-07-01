@@ -24,13 +24,15 @@ function MySessions() {
   const [sessionToCancel, setSessionToCancel] = useState(null);
   const [cancellationInfo, setCancellationInfo] = useState({ message: "" });
   const [isCancelling, setIsCancelling] = useState(false);
+  const [reviewedSessions, setReviewedSessions] = useState(new Set());
 
   const fetchBookings = async () => {
-    // ... (this function remains the same)
     try {
       const { data } = await axios.get(`${backendUrl}/api/bookings/user`);
       if (data.success) {
         setBookings(data.bookings);
+        // After fetching bookings, check which ones are reviewed
+        checkReviewedSessions(data.bookings);
       }
     } catch (error) {
       toast.error("Failed to fetch bookings");
@@ -67,7 +69,9 @@ function MySessions() {
     if (!sessionToCancel) return;
     setIsCancelling(true);
     try {
-      const { data } = await axios.put(`${backendUrl}/api/bookings/${sessionToCancel._id}/cancel`);
+      // ✅ FIX: Add an empty object {} as the second argument for the request body.
+      const { data } = await axios.put(`${backendUrl}/api/bookings/${sessionToCancel._id}/cancel`, {});
+
       if (data.success) {
         toast.success(data.message);
         fetchBookings(); // Refresh the list
@@ -80,6 +84,22 @@ function MySessions() {
       setIsCancelling(false);
       handleCloseCancelModal();
     }
+  };
+
+  const checkReviewedSessions = async (bookingsToCheck) => {
+    const completedSessions = bookingsToCheck.filter((b) => b.status === "completed");
+    const reviewed = new Set();
+    for (const session of completedSessions) {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/reviews/session/${session._id}/exists`);
+        if (data.success && data.exists) {
+          reviewed.add(session._id);
+        }
+      } catch (error) {
+        console.error(`Could not check review status for session ${session._id}`, error);
+      }
+    }
+    setReviewedSessions(reviewed);
   };
 
   useEffect(() => {
@@ -100,35 +120,17 @@ function MySessions() {
     if (!selectedSessionId) return;
     setIsSubmitting(true);
     try {
-      const response = await axios.post(`${backendUrl}/api/reviews/session/${selectedSessionId}`, {
-        rating,
-        comment,
-      });
-
+      const response = await axios.post(`${backendUrl}/api/reviews/session/${selectedSessionId}`, { rating, comment });
       if (response.data.success) {
         toast.success("Review submitted successfully!");
         handleCloseReviewModal();
-        // Optionally, you can update the local state to show the review was submitted
-        setBookings((prev) => prev.map((b) => (b._id === selectedSessionId ? { ...b, reviewed: true } : b)));
+        // Add the session to our reviewed set so the button hides immediately
+        setReviewedSessions((prev) => new Set(prev).add(selectedSessionId));
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to submit review.");
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleCancel = async (bookingId) => {
-    // ... (this function remains the same)
-    try {
-      const { data } = await axios.put(`${backendUrl}/api/bookings/${bookingId}/cancel`, {});
-      if (data.success) {
-        toast.success("Booking cancelled successfully");
-        fetchBookings();
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || "Failed to cancel booking";
-      toast.error(errorMessage);
     }
   };
 
@@ -185,14 +187,16 @@ function MySessions() {
                       <Button className="w-full bg-green-600 hover:bg-green-700">Join Session</Button>
                     </a>
                   )}
-                  {booking.status === "pending_confirmation" && (
-                    <Button variant="destructive" className="w-full" onClick={() => handleCancel(booking._id)}>
-                      Cancel Booking
-                    </Button>
-                  )}
+
                   {(booking.status === "pending_confirmation" || booking.status === "confirmed") && (
                     <Button variant="destructive" className="w-full" onClick={() => handleOpenCancelModal(booking)}>
                       Cancel Booking
+                    </Button>
+                  )}
+
+                  {booking.status === "completed" && !reviewedSessions.has(booking._id) && (
+                    <Button variant="outline" className="w-full" onClick={() => handleOpenReviewModal(booking._id)}>
+                      Leave a Review
                     </Button>
                   )}
                 </div>

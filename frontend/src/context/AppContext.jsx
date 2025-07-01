@@ -10,6 +10,7 @@ const AppContextProvider = (props) => {
   const [teachers, setTeachers] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // To track initial app load
+  const [notifications, setNotifications] = useState([]);
 
   const currencySymbol = "$";
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -85,12 +86,43 @@ const AppContextProvider = (props) => {
     }
   };
 
+  const fetchNotifications = async () => {
+    if (!user) return;
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/notifications`);
+      if (data.success) {
+        setNotifications(data.notifications);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications");
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(`${backendUrl}/api/notifications/${notificationId}/read`);
+      setNotifications((prev) => prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n)));
+    } catch (error) {
+      toast.error("Failed to mark notification as read.");
+    }
+  };
+
   // Run on initial application load
   useEffect(() => {
     // Fetch initial data
     getTeachers();
     checkSession();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      const intervalId = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(intervalId);
+    } else {
+      setNotifications([]);
+    }
+  }, [user]);
 
   const value = {
     user,
@@ -102,6 +134,8 @@ const AppContextProvider = (props) => {
     logout, // Provide the logout function to the context
     backendUrl,
     currencySymbol,
+    notifications,
+    markAsRead,
   };
 
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
