@@ -120,8 +120,8 @@ const AddTeacher = () => {
               </select>
             </div>
             <div className="flex-1 flex flex-col gap-1">
-              <p>Fees</p>
-              <input className="border rounded px-3 py-2" type="number" placeholder="Teacher fees" required value={fees} onChange={(e) => setFees(e.target.value)} />
+              <p>Fees (in Rupiah)</p>
+              <input className="border rounded px-3 py-2" type="number" placeholder="e.g., 50000" required value={fees} onChange={(e) => setFees(e.target.value)} />
             </div>
           </div>
 

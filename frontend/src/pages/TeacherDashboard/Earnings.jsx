@@ -7,7 +7,7 @@ import { AppContext } from "@/context/AppContext";
 import { DollarSign, Wallet, CalendarClock } from "lucide-react";
 
 const Earnings = () => {
-  const { backendUrl, currencySymbol } = useContext(AppContext);
+  const { backendUrl, formatCurrency } = useContext(AppContext);
   const [earningsData, setEarningsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,8 +52,8 @@ const Earnings = () => {
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard icon={<Wallet size={24} className="text-white" />} title="Total Earnings" value={`${currencySymbol}${earningsData.totalEarnings.toFixed(2)}`} color="bg-green-500" />
-        <StatCard icon={<DollarSign size={24} className="text-white" />} title="Pending Payout" value={`${currencySymbol}${earningsData.pendingPayout.toFixed(2)}`} color="bg-blue-500" />
+        <StatCard icon={<Wallet size={24} className="text-white" />} title="Total Earnings" value={formatCurrency(earningsData.totalEarnings)} color="bg-green-500" />
+        <StatCard icon={<DollarSign size={24} className="text-white" />} title="Pending Payout" value={formatCurrency(earningsData.pendingPayout)} color="bg-blue-500" />
         <StatCard
           icon={<CalendarClock size={24} className="text-white" />}
           title="Next Payout Date"
@@ -87,18 +87,9 @@ const Earnings = () => {
                     <tr key={session._id}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(session.date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{session.studentId.fullName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {currencySymbol}
-                        {session.price.toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500">
-                        - {currencySymbol}
-                        {(session.price * 0.05).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">
-                        {currencySymbol}
-                        {(session.price * 0.95).toFixed(2)}
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatCurrency(session.price)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500">- {formatCurrency(session.price * 0.05)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">{formatCurrency(session.price * 0.95)}</td>
                     </tr>
                   ))
                 ) : (

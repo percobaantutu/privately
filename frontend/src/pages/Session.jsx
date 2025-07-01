@@ -13,7 +13,7 @@ import { Star } from "lucide-react"; // Import the Star icon
 
 function Session() {
   const { teacherId } = useParams();
-  const { teachers, currencySymbol, backendUrl } = useContext(AppContext);
+  const { teachers, formatCurrency, backendUrl } = useContext(AppContext);
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const [teacherInfo, setTeacherInfo] = useState(null);
@@ -175,11 +175,7 @@ function Session() {
             <p className="text-sm text-gray-600 max-w-[700px] mt-1">{teacherInfo.about}</p>
           </div>
           <p className="text-gray-600 font-medium mt-4">
-            Session fee:{" "}
-            <span className="text-gray-800">
-              {currencySymbol}
-              {teacherInfo.fees}
-            </span>
+            Session fee: <span className="text-gray-800">{formatCurrency(teacherInfo.fees)}</span>
           </p>
         </div>
       </div>
