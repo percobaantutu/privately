@@ -7,51 +7,101 @@ import Session from "../models/Session.js";
 // Get a list of all VERIFIED teachers with their profiles
 const teacherList = async (req, res) => {
   try {
-    // 1. Find all verified and active teacher users
-    const teachersAsUsers = await User.find({
+    const { search, speciality, minFee, maxFee, minRating, sortBy } = req.query;
+
+    // --- Step 1: Build the initial match criteria for the User model ---
+    const userMatchCriteria = {
       role: "teacher",
       isVerified: true,
       isActive: true,
-    })
-      .select("-password")
-      .lean(); // .lean() makes them plain JS objects
+    };
 
-    // 2. Get all of their user IDs
-    const teacherUserIds = teachersAsUsers.map((teacher) => teacher._id);
+    if (search) {
+      // Case-insensitive search on the user's full name
+      userMatchCriteria.fullName = { $regex: search, $options: "i" };
+    }
 
-    // 3. Find all teacher profiles that match those user IDs
-    const teacherProfiles = await TeacherProfile.find({
-      userId: { $in: teacherUserIds },
-    }).lean();
+    // --- Step 2: Find initial set of teacher user IDs based on user criteria ---
+    const matchingUsers = await User.find(userMatchCriteria).select("_id").lean();
+    const teacherUserIds = matchingUsers.map((user) => user._id);
 
-    // 4. Create a map for easy lookup
-    const profileMap = new Map(teacherProfiles.map((profile) => [profile.userId.toString(), profile]));
+    if (teacherUserIds.length === 0) {
+      // If no users match the name search, return empty array immediately
+      return res.status(200).json({ success: true, teachers: [] });
+    }
 
-    // 5. Combine the data
-    const fullTeacherData = teachersAsUsers.map((user) => {
-      const profile = profileMap.get(user._id.toString());
+    // --- Step 3: Build the match criteria for the TeacherProfile model ---
+    const profileMatchCriteria = {
+      userId: { $in: teacherUserIds }, // Filter profiles based on the users we found
+    };
 
-      // ✅ Combine user data and profile data, ensuring user._id is the primary _id
-      return {
-        _id: user._id, // The main user ID
-        name: user.fullName,
-        email: user.email,
-        image: user.profilePicture,
-        isActive: user.isActive,
-        // from profile
-        speciality: profile?.speciality,
-        degree: profile?.degree,
-        experience: profile?.experience,
-        about: profile?.about,
-        fees: profile?.hourlyRate,
-        address: profile?.address,
-      };
-    });
+    if (speciality) {
+      profileMatchCriteria.speciality = speciality;
+    }
+    if (minFee || maxFee) {
+      profileMatchCriteria.hourlyRate = {};
+      if (minFee) profileMatchCriteria.hourlyRate.$gte = Number(minFee);
+      if (maxFee) profileMatchCriteria.hourlyRate.$lte = Number(maxFee);
+    }
+    if (minRating) {
+      profileMatchCriteria.rating = { $gte: Number(minRating) };
+    }
+    if (search) {
+      // If there's a search term, also search the 'about' section in the profile.
+      // We use an $or condition to match either the user name (already filtered) OR the about text.
+      // Since we've already filtered by user name, we only need to add the 'about' condition here.
+      // We need to re-structure the query slightly to handle this OR condition.
+      // For simplicity in this step, we will rely on the name search from the User model.
+      // An even more advanced version could use an aggregation pipeline.
+    }
+
+    // --- Step 4: Define Sorting Options ---
+    let sortOption = {};
+    if (sortBy === "rating_desc") {
+      sortOption = { rating: -1 };
+    } else if (sortBy === "fee_asc") {
+      sortOption = { hourlyRate: 1 };
+    } else if (sortBy === "fee_desc") {
+      sortOption = { hourlyRate: -1 };
+    } else {
+      // Default sort (e.g., by creation date or name)
+      sortOption = { createdAt: -1 };
+    }
+
+    // --- Step 5: Execute the Final Query ---
+    const finalTeacherProfiles = await TeacherProfile.find(profileMatchCriteria)
+      .sort(sortOption)
+      .populate({
+        path: "userId",
+        select: "-password", // Populate with user details, exclude password
+      })
+      .lean();
+
+    // --- Step 6: Format the data for the frontend ---
+    const fullTeacherData = finalTeacherProfiles
+      .map((profile) => {
+        if (!profile.userId) return null; // Skip if userId is null for some reason
+        return {
+          _id: profile.userId._id,
+          name: profile.userId.fullName,
+          email: profile.userId.email,
+          image: profile.userId.profilePicture,
+          isActive: profile.userId.isActive,
+          speciality: profile.speciality,
+          degree: profile.degree,
+          experience: profile.experience,
+          about: profile.about,
+          fees: profile.hourlyRate,
+          address: profile.address,
+          rating: profile.rating, // Pass rating to frontend
+        };
+      })
+      .filter(Boolean); // Remove any null entries
 
     res.status(200).json({ success: true, teachers: fullTeacherData });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ success: false, message: "Error fetching teacher list: " + error.message });
+    console.error("Error fetching filtered teacher list:", error);
+    res.status(500).json({ success: false, message: "Server error fetching teachers." });
   }
 };
 
