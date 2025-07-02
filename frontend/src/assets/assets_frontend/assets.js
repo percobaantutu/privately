@@ -79,7 +79,7 @@ export const specialityData = [
     image: History,
   },
   {
-    speciality: "Life Skill",
+    speciality: "Other",
     image: Life_Skill,
   },
 ];
