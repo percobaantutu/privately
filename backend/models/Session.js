@@ -33,8 +33,8 @@ const sessionSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending_confirmation", "confirmed", "completed", "cancelled"],
-      default: "pending_confirmation",
+      enum: ["pending_payment", "pending_confirmation", "confirmed", "completed", "cancelled"],
+      default: "pending_payment",
     },
     price: {
       type: Number,
@@ -42,7 +42,7 @@ const sessionSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "paid", "refunded"],
+      enum: ["pending", "paid", "refunded", "failed"],
       default: "pending", // This will be updated once payment is integrated
     },
     sessionLink: {

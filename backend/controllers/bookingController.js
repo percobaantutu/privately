@@ -1,14 +1,21 @@
 import Session from "../models/Session.js";
 import TeacherProfile from "../models/teacherProfile.js";
-import validator from "validator"; //
+import validator from "validator";
 import { createNotification } from "./notificationController.js";
 import User from "../models/userModel.js";
+import snap from "../config/midtrans.js"; // Import Midtrans config
 
 // Student: Create a new session booking
 export const createBooking = async (req, res) => {
   try {
     const { teacherId, date, startTime, duration = 60, notes, type = "online" } = req.body;
     const studentId = req.user._id;
+
+    // --- FIX: Fetch the full student object ---
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ success: false, message: "Student user not found." });
+    }
 
     if (!teacherId || !date || !startTime) {
       return res.status(400).json({ success: false, message: "Teacher, date, and start time are required." });
@@ -22,7 +29,7 @@ export const createBooking = async (req, res) => {
     const endTime = new Date(sessionDate.getTime() + duration * 60000);
     const endTimeString = endTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
 
-    const teacherProfile = await TeacherProfile.findOne({ userId: teacherId });
+    const teacherProfile = await TeacherProfile.findOne({ userId: teacherId }).populate("userId", "fullName");
     if (!teacherProfile) {
       return res.status(404).json({ success: false, message: "Teacher profile not found." });
     }
@@ -38,7 +45,7 @@ export const createBooking = async (req, res) => {
       return res.status(409).json({ success: false, message: "This time slot is already booked or pending. Please choose another time." });
     }
 
-    // --- Create Session ---
+    // --- Create Session with pending payment status ---
     const newSession = new Session({
       teacherId,
       studentId,
@@ -49,23 +56,49 @@ export const createBooking = async (req, res) => {
       price: teacherProfile.hourlyRate,
       type,
       notes,
-      status: "pending_confirmation",
-      paymentStatus: "paid", // Placeholder
+      status: "pending_payment",
+      paymentStatus: "pending",
     });
 
-    await newSession.save();
-    await createNotification(teacherId, "new_booking", `${req.user.fullName} has requested a session with you.`, "/teacher/dashboard/sessions");
+    await newSession.save(); // Save the session first to get a unique _id
+
+    // Create a transaction object for Midtrans
+    const transactionDetails = {
+      transaction_details: {
+        order_id: newSession._id.toString(),
+        gross_amount: newSession.price,
+      },
+      customer_details: {
+        first_name: student.fullName,
+        email: student.email,
+        phone: student.phoneNumber || "N/A",
+      },
+      item_details: [
+        {
+          id: teacherId.toString(),
+          price: newSession.price,
+          quantity: 1,
+          name: `Tutoring Session with ${teacherProfile.userId.fullName}`,
+          category: "Education",
+        },
+      ],
+    };
+
+    const transactionToken = await snap.createTransactionToken(transactionDetails);
 
     res.status(201).json({
       success: true,
-      message: "Session booked successfully! Awaiting teacher's confirmation.",
-      session: newSession,
+      message: "Booking initiated. Please complete the payment.",
+      token: transactionToken,
+      sessionId: newSession._id,
     });
   } catch (error) {
     console.error("Booking creation error:", error);
     res.status(500).json({ success: false, message: "Error creating booking." });
   }
 };
+
+// --- REST OF THE FILE REMAINS THE SAME ---
 
 // Teacher: Confirm a session and add the meeting link
 export const confirmSession = async (req, res) => {
@@ -138,7 +171,6 @@ export const updateBookingStatus = async (req, res) => {
     const { bookingId } = req.params;
     const { status } = req.body;
 
-    // ✅ FIX: Changed Booking to Session
     const session = await Session.findById(bookingId);
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
@@ -155,7 +187,7 @@ export const updateBookingStatus = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Session status updated successfully",
-      booking: session, // Keep 'booking' for frontend compatibility if needed, or change to 'session'
+      booking: session,
     });
   } catch (error) {
     console.error("Update booking status error:", error);
@@ -167,7 +199,7 @@ export const updateBookingStatus = async (req, res) => {
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const cancelingUser = req.user; // User object from isAuthenticated middleware
+    const cancelingUser = req.user;
 
     const session = await Session.findById(bookingId);
 
@@ -175,42 +207,31 @@ export const cancelBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: "Session not found." });
     }
 
-    // --- REVISED AUTHORIZATION & RULE CHECK ---
-
     const isStudent = session.studentId._id.toString() === cancelingUser._id.toString();
     const isTeacher = session.teacherId._id.toString() === cancelingUser._id.toString();
 
-    // 1. Check if the user is authorized at all
     if (!isStudent && !isTeacher) {
       return res.status(403).json({ success: false, message: "Not authorized to modify this session." });
     }
 
-    // 2. Prevent cancelling sessions that are already finished or cancelled
     if (session.status === "completed" || session.status === "cancelled") {
       return res.status(400).json({ success: false, message: `Cannot cancel a session that is already ${session.status}.` });
     }
 
-    // --- APPLY ROLE-SPECIFIC RULES ---
-
-    // CASE A: Teacher is cancelling
     if (isTeacher) {
       session.status = "cancelled";
       await session.save();
 
-      // Notify the student
       await createNotification(session.studentId, "booking_cancelled_by_teacher", `Your session with ${cancelingUser.fullName} has been cancelled. A full refund will be processed.`, "/my-appointments");
 
       return res.status(200).json({ success: true, message: "Session cancelled successfully. The student has been notified and refunded." });
     }
 
-    // CASE B: Student is cancelling
     if (isStudent) {
-      // **NEW RULE**: Prevent student from cancelling if already confirmed
       if (session.status === "confirmed") {
         return res.status(403).json({ success: false, message: "This session is confirmed and can no longer be cancelled. Please contact the teacher or support if you have an issue." });
       }
 
-      // If status is 'pending_confirmation', proceed with the time-based refund logic
       const sessionTime = new Date(session.date).getTime();
       const now = new Date().getTime();
       const hoursUntil = (sessionTime - now) / (1000 * 60 * 60);
@@ -218,10 +239,8 @@ export const cancelBooking = async (req, res) => {
       session.status = "cancelled";
       await session.save();
 
-      // Notify the teacher
       await createNotification(session.teacherId, "booking_cancelled_by_student", `${cancelingUser.fullName} has cancelled their upcoming session.`, "/teacher/dashboard/sessions");
 
-      // Refund logic (this part is unchanged)
       if (hoursUntil > 24) {
         return res.status(200).json({ success: true, message: "Session cancelled successfully. A full refund will be processed." });
       }
@@ -266,19 +285,15 @@ export const completeSession = async (req, res) => {
       return res.status(400).json({ success: false, message: "Cannot complete a session that is still far in the future." });
     }
 
-    // Update the status
     session.status = "completed";
     await session.save();
 
-    // ✅ START: PHASE 4 - Commission and Earnings Logic
-    const commissionRate = 0.05; // 5%
+    const commissionRate = 0.05;
     const sessionPrice = session.price;
     const commissionAmount = sessionPrice * commissionRate;
     const netEarnings = sessionPrice - commissionAmount;
 
-    // Atomically increment the teacher's earnings in their profile
     await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: netEarnings } });
-    // ✅ END: PHASE 4 - Commission and Earnings Logic
 
     await createNotification(session.studentId, "session_completed", `Your session with ${req.user.fullName} is complete. We'd love to hear your feedback!`, "/my-appointments");
     res.status(200).json({ success: true, message: "Session marked as completed successfully.", session });

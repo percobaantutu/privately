@@ -11,6 +11,8 @@ import authRoute from "./routes/authRoute.js";
 import reviewRoute from "./routes/reviewRoute.js";
 import notificationRoute from "./routes/notificationRoute.js";
 
+import paymentRoute from "./routes/paymentRoute.js";
+
 // App Config
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -34,6 +36,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/auth", authRoute);
 app.use("/api/reviews", reviewRoute);
 app.use("/api/notifications", notificationRoute);
+app.use("/api/payments", paymentRoute);
 
 app.get("/", (req, res) => {
   res.send("API Working great yeaey!");

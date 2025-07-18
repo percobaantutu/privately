@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import RelatedTeachers from "@/components/ui/RelatedTeachers";
 import { AppContext } from "@/context/AppContext";
 import React, { useContext, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import BookingConfirmation from "@/components/ui/BookingConfirmation";
 import axios from "../utils/axios"; // Use configured axios
 import { toast } from "react-toastify";
@@ -14,6 +14,7 @@ import { Star } from "lucide-react"; // Import the Star icon
 function Session() {
   const { teacherId } = useParams();
   const { teachers, formatCurrency, backendUrl } = useContext(AppContext);
+  const navigate = useNavigate();
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   const [teacherInfo, setTeacherInfo] = useState(null);
@@ -104,7 +105,8 @@ function Session() {
     setIsBookingModalOpen(true);
   };
   const handleBookingConfirm = async () => {
-    // ... function is unchanged
+    setIsBookingModalOpen(false);
+
     try {
       const response = await axios.post(
         `${backendUrl}/api/bookings/create`,
@@ -118,8 +120,23 @@ function Session() {
         { withCredentials: true }
       );
       if (response.data.success) {
-        toast.success("Booking confirmed successfully!");
-        setIsBookingModalOpen(false);
+        const transactionToken = response.data.token;
+        window.snap.pay(transactionToken, {
+          onSuccess: function (result) {
+            toast.success("Payment successful! Waiting for teacher confirmation.");
+            navigate("/my-appointments");
+          },
+          onPending: function (result) {
+            toast.info("Your payment is pending. We will update you shortly.");
+            navigate("/my-appointments");
+          },
+          onError: function (result) {
+            toast.error("Payment failed. Please try again.");
+          },
+          onClose: function () {
+            toast.warn("You closed the payment popup without completing the payment.");
+          },
+        });
       }
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Error creating booking";
