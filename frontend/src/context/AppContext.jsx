@@ -77,6 +77,10 @@ const AppContextProvider = (props) => {
     }
   };
 
+  const refreshUserProfile = async () => {
+    await checkSession();
+  };
+
   const logout = async () => {
     try {
       await axios.get(`${backendUrl}/api/auth/logout`);
@@ -137,6 +141,7 @@ const AppContextProvider = (props) => {
     fetchNotifications,
     markAsRead,
     formatCurrency,
+    refreshUserProfile,
   };
 
   return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;

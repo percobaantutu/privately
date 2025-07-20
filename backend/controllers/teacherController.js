@@ -252,10 +252,44 @@ export const getPublicTeacherSlots = async (req, res) => {
 
 // --- END OF NEW FUNCTIONS ---
 
-// We no longer need registerTeacher or loginTeacher here.
-export {
-  teacherList,
-  changeAvailability,
+export const updateMyProfile = async (req, res) => {
+  try {
+    const teacherUserId = req.user._id;
 
-  // updateTeacherProfile
+    // Destructure all expected data from the request body
+    const { fullName, speciality, degree, experience, about, hourlyRate, address } = req.body;
+
+    // Update the User model (only the full name)
+    if (fullName) {
+      await User.findByIdAndUpdate(teacherUserId, { fullName });
+    }
+
+    // Prepare data for the TeacherProfile model update
+    const profileDataToUpdate = {
+      speciality,
+      degree,
+      experience,
+      about,
+      hourlyRate,
+      address,
+    };
+
+    // Update the TeacherProfile model
+    const updatedProfile = await TeacherProfile.findOneAndUpdate({ userId: teacherUserId }, profileDataToUpdate, { new: true, runValidators: true });
+
+    if (!updatedProfile) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully.",
+    });
+  } catch (error) {
+    console.error("Update teacher profile error:", error);
+    res.status(500).json({ success: false, message: "Server error while updating profile." });
+  }
 };
+
+// We no longer need registerTeacher or loginTeacher here.
+export { teacherList, changeAvailability };

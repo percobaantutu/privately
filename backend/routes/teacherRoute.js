@@ -9,6 +9,7 @@ import {
   getMyAvailability, // New
   updateMyAvailability, // New
   getPublicTeacherSlots, // New
+  updateMyProfile,
 } from "../controllers/teacherController.js";
 
 import { isAuthenticated, authorizeRoles } from "../middleware/auth.js";
@@ -31,5 +32,8 @@ teacherRouter.get("/me/availability", isAuthenticated, authorizeRoles("teacher")
 
 // Update the logged-in teacher's weekly availability schedule
 teacherRouter.put("/me/availability", isAuthenticated, authorizeRoles("teacher"), updateMyAvailability);
+
+// Update the logged-in teacher's full profile (User + TeacherProfile)
+teacherRouter.put("/me/profile", isAuthenticated, authorizeRoles("teacher"), updateMyProfile);
 
 export default teacherRouter;

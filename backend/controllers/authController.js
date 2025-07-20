@@ -151,7 +151,16 @@ export const logout = (req, res) => {
 // Get current user
 export const getMe = async (req, res) => {
   try {
-    const user = req.user;
+    let user = req.user.toObject(); // Convert mongoose document to plain object to allow modification
+
+    // If the user is a teacher, find their profile and attach it
+    if (user.role === "teacher") {
+      const teacherProfile = await TeacherProfile.findOne({ userId: user._id }).lean();
+      if (teacherProfile) {
+        user.teacherProfile = teacherProfile; // Attach profile to the user object
+      }
+    }
+
     res.status(200).json({
       success: true,
       user,
@@ -209,46 +218,34 @@ export const updateUserProfile = async (req, res) => {
 // Upload user profile picture
 export const uploadProfilePicture = async (req, res) => {
   try {
-    // Assuming isAuthenticated middleware has already attached user to req.user
     const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    const imageFile = req.file; // Assuming file is available on req.file via middleware
-
+    const imageFile = req.file;
     if (!imageFile) {
       return res.status(400).json({ success: false, message: "Image file is required" });
     }
 
-    // Upload image to Cloudinary
     const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
       resource_type: "image",
-      folder: "user_profiles", // Optional: organize uploads into a folder
-      public_id: `user_${user._id}_${Date.now()}`, // Optional: give a unique public ID
+      folder: "user_profiles",
+      public_id: `user_${user._id}_${Date.now()}`,
     });
-    const imageUrl = imageUpload.secure_url;
 
-    // Update user's image URL in the database
-    user.image = imageUrl;
+    // ✅ CORRECTED FIELD: Use 'profilePicture' instead of 'image'
+    user.profilePicture = imageUpload.secure_url;
     await user.save();
 
     res.status(200).json({
       success: true,
       message: "Profile picture uploaded successfully",
-      imageUrl: imageUrl, // Send the new image URL back to the frontend
-      user: {
-        // Optionally send updated user object
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        role: user.role, // Include role in response
-      },
+      imageUrl: user.profilePicture,
     });
   } catch (error) {
     console.error("Upload profile picture error:", error);
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Error uploading profile picture." });
   }
 };

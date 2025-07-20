@@ -125,8 +125,6 @@ function Session() {
   useEffect(() => {
     if (teacherInfo) {
       generateAvailableDates();
-      // ❌ REMOVED: This line was the cause of the error and is now redundant.
-      // getAvailableSlots();
     }
   }, [teacherInfo]); // ✅ Dependency array is now correct.
 
@@ -173,7 +171,7 @@ function Session() {
       {/* Profile Section */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div>
-          <img className="bg-primary w-full sm:max-w-72 rounded-lg" src={teacherInfo.profilePicture} alt={teacherInfo.fullName} />
+          <img className="bg-primary w-full sm:max-w-72 rounded-lg" src={teacherInfo.image} alt={teacherInfo.name} />
         </div>
         <div className="flex-1 border border-[#ADADAD] rounded-lg p-8 py-7 bg-white mx-2 sm:mx-0 mt-[-80px] sm:mt-0">
           <p className="flex items-center gap-2 text-3xl font-medium text-gray-700">
