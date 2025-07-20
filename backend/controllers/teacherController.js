@@ -175,6 +175,83 @@ export const getTeacherEarnings = async (req, res) => {
   }
 };
 
+export const getMyAvailability = async (req, res) => {
+  try {
+    const profile = await TeacherProfile.findOne({ userId: req.user._id });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found." });
+    }
+    res.status(200).json({ success: true, availability: profile.availability });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error fetching availability." });
+  }
+};
+
+// Update the logged-in teacher's availability schedule
+export const updateMyAvailability = async (req, res) => {
+  try {
+    const { availability } = req.body; // Expects the object like { Monday: ["09:00"], ... }
+
+    const profile = await TeacherProfile.findOneAndUpdate({ userId: req.user._id }, { availability }, { new: true, runValidators: true });
+
+    if (!profile) {
+      return res.status(404).json({ success: false, message: "Teacher profile not found." });
+    }
+
+    res.status(200).json({ success: true, message: "Availability updated successfully.", availability: profile.availability });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error updating availability." });
+  }
+};
+
+// Get calculated, bookable slots for a specific teacher on a given date
+export const getPublicTeacherSlots = async (req, res) => {
+  try {
+    const { teacherId, date } = req.params; // date is in YYYY-MM-DD format
+
+    // ✅ FIX: Explicitly parse the incoming date string as UTC.
+    const selectedDate = new Date(`${date}T00:00:00.000Z`);
+
+    // 1. Get the teacher's general availability schedule
+    const profile = await TeacherProfile.findOne({ userId: teacherId });
+    if (!profile || !profile.availability) {
+      return res.status(200).json({ success: true, slots: [] });
+    }
+
+    const dayOfWeek = selectedDate.toLocaleString("en-US", { weekday: "long", timeZone: "UTC" });
+    const daySchedule = profile.availability[dayOfWeek] || [];
+
+    if (daySchedule.length === 0) {
+      return res.status(200).json({ success: true, slots: [] });
+    }
+
+    // 2. Get sessions already booked for that specific UTC date
+    // ✅ FIX: Use the UTC-parsed date to define the query boundaries.
+    const startOfDay = new Date(selectedDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date(selectedDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const existingSessions = await Session.find({
+      teacherId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["pending_confirmation", "confirmed"] },
+    });
+
+    const bookedTimes = new Set(existingSessions.map((session) => session.startTime));
+
+    // 3. Filter the schedule to show only truly available slots
+    const availableSlots = daySchedule.filter((time) => !bookedTimes.has(time));
+
+    res.status(200).json({ success: true, slots: availableSlots });
+  } catch (error) {
+    console.error("Error fetching public slots:", error);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// --- END OF NEW FUNCTIONS ---
+
 // We no longer need registerTeacher or loginTeacher here.
 export {
   teacherList,

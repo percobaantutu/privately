@@ -23,8 +23,9 @@ export const createBooking = async (req, res) => {
 
     // --- Time and Price Calculation ---
     const [hours, minutes] = startTime.split(":");
-    const sessionDate = new Date(date);
+    const sessionDate = new Date(`${date}T00:00:00.000Z`);
     sessionDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
+
 
     const endTime = new Date(sessionDate.getTime() + duration * 60000);
     const endTimeString = endTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });

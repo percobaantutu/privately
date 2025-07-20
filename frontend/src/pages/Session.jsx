@@ -19,6 +19,7 @@ function Session() {
 
   const [teacherInfo, setTeacherInfo] = useState(null);
   const [teacherSlots, setTeacherSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [slotTime, setSlotTime] = useState("");
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
@@ -51,7 +52,6 @@ function Session() {
     setTeacherInfo(foundTeacher);
   };
 
-  // ... (all other existing functions like generateAvailableDates, getAvailableSlots, handleSlotSelection, handleBookingConfirm remain the same)
   const generateAvailableDates = () => {
     const dates = [];
     const today = new Date();
@@ -62,42 +62,13 @@ function Session() {
     }
     setAvailableDates(dates);
   };
-  const getAvailableSlots = () => {
-    // ... function is unchanged
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const maxDate = new Date();
-    maxDate.setDate(today.getDate() + 6);
-    const startHour = 10;
-    const endHour = 21;
-    const slots = [];
-    const currentDate = new Date(selectedDate);
-    currentDate.setHours(0, 0, 0, 0);
-    if (currentDate >= today && currentDate <= maxDate) {
-      const endTime = new Date(selectedDate);
-      endTime.setHours(endHour, 0, 0, 0);
-      if (currentDate.getTime() === today.getTime()) {
-        const now = new Date();
-        const currentHour = now.getHours();
-        currentDate.setHours(Math.max(currentHour + 1, startHour), 0, 0, 0);
-      } else {
-        currentDate.setHours(startHour, 0, 0, 0);
-      }
-      while (currentDate < endTime) {
-        slots.push({
-          dateTime: new Date(currentDate),
-          time: currentDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        });
-        currentDate.setHours(currentDate.getHours() + 1);
-      }
-    }
-    setTeacherSlots(slots);
-  };
+
   const handleSlotSelection = (slot) => {
     setSlotTime(slot.time);
     setSelectedSession({
       teacher: teacherInfo,
-      date: slot.dateTime.toLocaleDateString(),
+      // ✅ FIX: Use the reliable YYYY-MM-DD format instead of locale-dependent string
+      date: slot.dateTime.toISOString().split("T")[0],
       time: slot.time,
       duration: 60,
       price: teacherInfo.fees,
@@ -147,16 +118,51 @@ function Session() {
   useEffect(() => {
     if (teachers.length > 0) {
       fetchTeacherInfo();
-      fetchTeacherReviews(); // Fetch reviews when teacher info is available
+      fetchTeacherReviews();
     }
   }, [teachers, teacherId]);
 
   useEffect(() => {
     if (teacherInfo) {
       generateAvailableDates();
-      getAvailableSlots();
+      // ❌ REMOVED: This line was the cause of the error and is now redundant.
+      // getAvailableSlots();
     }
-  }, [teacherInfo, selectedDate]);
+  }, [teacherInfo]); // ✅ Dependency array is now correct.
+
+  useEffect(() => {
+    const fetchAvailableSlots = async () => {
+      if (!teacherId || !selectedDate) return;
+
+      setLoadingSlots(true);
+      setTeacherSlots([]);
+
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/teachers/${teacherId}/slots/${formattedDate}`);
+        if (data.success) {
+          const formattedSlots = data.slots.map((time) => {
+            const [hour, minute] = time.split(":");
+            const dateTime = new Date(selectedDate);
+            dateTime.setHours(hour, minute, 0, 0);
+            return { time, dateTime };
+          });
+          setTeacherSlots(formattedSlots);
+        }
+      } catch (error) {
+        toast.error("Could not fetch available slots for this day.");
+        setTeacherSlots([]);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+
+    if (teacherInfo) {
+      // Ensure teacherInfo is loaded before fetching slots
+      fetchAvailableSlots();
+    }
+  }, [selectedDate, teacherId, teacherInfo, backendUrl]); // ✅ Added teacherInfo dependency
 
   if (!teacherInfo) {
     return <div className="text-center py-20">Loading teacher information...</div>;
@@ -173,7 +179,6 @@ function Session() {
           <p className="flex items-center gap-2 text-3xl font-medium text-gray-700">
             {teacherInfo.fullName} <img className="w-5" src={assets.verified_icon} alt="" />
           </p>
-          {/* --- NEW RATING DISPLAY --- */}
           {teacherInfo.rating > 0 && (
             <div className="flex items-center gap-1 mt-2">
               <Star size={20} className="text-yellow-500 fill-yellow-500" />
@@ -198,14 +203,16 @@ function Session() {
       </div>
 
       {/* Booking Section */}
-      {/* ... (This entire section remains unchanged) ... */}
       <div className="sm:ml-72 sm:pl-4 mt-8 font-medium text-[#565656]">
         <p>Select Date and Time</p>
         <div className="mt-4 flex flex-row gap-2 overflow-x-auto pb-2">
           {availableDates.map((date, index) => (
             <div
               key={index}
-              onClick={() => setSelectedDate(date)}
+              onClick={() => {
+                setSlotTime(""); // Reset selected time when date changes
+                setSelectedDate(date);
+              }}
               className={`text-center py-3 px-6 rounded-full cursor-pointer transition-all duration-300 flex-shrink-0 ${
                 selectedDate.toDateString() === date.toDateString() ? "bg-primary text-white" : "border border-gray-200 hover:border-primary hover:text-primary"
               }`}
@@ -218,23 +225,30 @@ function Session() {
         <div className="my-6 border-t border-gray-200"></div>
         <div className="mt-6">
           <p className="mb-4">Available Time Slots</p>
+          <p className="mb-4 text-sm font-normal text-gray-500">All times are shown in Western Indonesia Time (WIB, UTC+7).</p>
           <div className="flex flex-wrap gap-3">
-            {teacherSlots.map((item, index) => (
-              <p
-                onClick={() => handleSlotSelection(item)}
-                key={index}
-                className={`text-sm font-light px-5 py-2 rounded-full cursor-pointer transition-all duration-300 ${
-                  item.time === slotTime ? `bg-primary text-white` : `text-gray-400 border border-gray-300 hover:border-primary hover:text-primary`
-                }`}
-              >
-                {item.time.toLowerCase()}
-              </p>
-            ))}
+            {loadingSlots ? (
+              <p className="text-sm text-gray-500">Finding available slots...</p>
+            ) : teacherSlots.length > 0 ? (
+              teacherSlots.map((item, index) => (
+                <p
+                  onClick={() => handleSlotSelection(item)}
+                  key={index}
+                  className={`text-sm font-light px-5 py-2 rounded-full cursor-pointer transition-all duration-300 ${
+                    item.time === slotTime ? `bg-primary text-white` : `text-gray-400 border border-gray-300 hover:border-primary hover:text-primary`
+                  }`}
+                >
+                  {item.time}
+                </p>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">No available slots for this day.</p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* --- NEW REVIEWS SECTION --- */}
+      {/* Reviews Section */}
       <div className="mt-16">
         <h3 className="text-2xl font-semibold text-gray-800 mb-4">Student Feedback</h3>
         {loadingReviews ? (

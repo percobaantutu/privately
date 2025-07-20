@@ -2,21 +2,34 @@
 
 import express from "express";
 
-import { teacherList, getTeacherEarnings } from "../controllers/teacherController.js";
+// --- UPDATED: Import new controller functions ---
+import {
+  teacherList,
+  getTeacherEarnings,
+  getMyAvailability, // New
+  updateMyAvailability, // New
+  getPublicTeacherSlots, // New
+} from "../controllers/teacherController.js";
 
 import { isAuthenticated, authorizeRoles } from "../middleware/auth.js";
-// We will add getTeacherProfile later, for now we only need teacherList
 
 const teacherRouter = express.Router();
 
-// PUBLIC ROUTE: Get a list of all verified teachers
+// --- PUBLIC ROUTES ---
+// Get a list of all verified teachers with filters
 teacherRouter.get("/list", teacherList);
+
+// Get calculated, bookable slots for a specific teacher on a given date
+teacherRouter.get("/:teacherId/slots/:date", getPublicTeacherSlots);
+
+// --- TEACHER AUTHENTICATED ROUTES ---
+// Get the logged-in teacher's earnings data
 teacherRouter.get("/me/earnings", isAuthenticated, authorizeRoles("teacher"), getTeacherEarnings);
 
-// PROTECTED ROUTE EXAMPLE (for the future):
-// This route would get the profile of the currently logged-in teacher.
-// We'll add the getTeacherProfile function back to a controller later.
-// For now, this shows the correct structure.
-// teacherRouter.get("/profile", isAuthenticated, authorizeRoles('teacher'), getTeacherProfile);
+// Get the logged-in teacher's weekly availability schedule
+teacherRouter.get("/me/availability", isAuthenticated, authorizeRoles("teacher"), getMyAvailability);
+
+// Update the logged-in teacher's weekly availability schedule
+teacherRouter.put("/me/availability", isAuthenticated, authorizeRoles("teacher"), updateMyAvailability);
 
 export default teacherRouter;
