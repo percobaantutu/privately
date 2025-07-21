@@ -4,7 +4,7 @@ import React, { useState, useEffect, useContext } from "react";
 import axios from "../../utils/axios";
 import { toast } from "react-toastify";
 import { AppContext } from "@/context/AppContext";
-import { DollarSign, Wallet, CalendarClock } from "lucide-react";
+import { DollarSign, Wallet, CalendarClock, History } from "lucide-react";
 
 const Earnings = () => {
   const { backendUrl, formatCurrency } = useContext(AppContext);
@@ -29,7 +29,11 @@ const Earnings = () => {
   }, [backendUrl]);
 
   if (loading) {
-    return <div className="p-8 text-center">Loading earnings data...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   if (!earningsData) {
@@ -52,8 +56,8 @@ const Earnings = () => {
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard icon={<Wallet size={24} className="text-white" />} title="Total Earnings" value={formatCurrency(earningsData.totalEarnings)} color="bg-green-500" />
-        <StatCard icon={<DollarSign size={24} className="text-white" />} title="Pending Payout" value={formatCurrency(earningsData.pendingPayout)} color="bg-blue-500" />
+        <StatCard icon={<Wallet size={24} className="text-white" />} title="Lifetime Earnings" value={formatCurrency(earningsData.lifetimeEarnings)} color="bg-green-500" />
+        <StatCard icon={<DollarSign size={24} className="text-white" />} title="Current Balance (Pending Payout)" value={formatCurrency(earningsData.currentBalance)} color="bg-blue-500" />
         <StatCard
           icon={<CalendarClock size={24} className="text-white" />}
           title="Next Payout Date"
@@ -66,9 +70,9 @@ const Earnings = () => {
         />
       </div>
 
-      {/* Transactions Table */}
+      {/* Transaction History Table */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Transaction History</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Completed Session History</h2>
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -102,6 +106,15 @@ const Earnings = () => {
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {/* Payout History Placeholder */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">Payout History</h2>
+        <div className="bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
+          <History className="mx-auto mb-2" />
+          <p>Your payout history will be displayed here once your first payout is processed.</p>
         </div>
       </div>
     </div>

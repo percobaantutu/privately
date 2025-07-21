@@ -26,7 +26,6 @@ export const createBooking = async (req, res) => {
     const sessionDate = new Date(`${date}T00:00:00.000Z`);
     sessionDate.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
 
-
     const endTime = new Date(sessionDate.getTime() + duration * 60000);
     const endTimeString = endTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC" });
 
@@ -294,7 +293,12 @@ export const completeSession = async (req, res) => {
     const commissionAmount = sessionPrice * commissionRate;
     const netEarnings = sessionPrice - commissionAmount;
 
-    await TeacherProfile.findOneAndUpdate({ userId: session.teacherId }, { $inc: { earnings: netEarnings } });
+    await TeacherProfile.findOneAndUpdate(
+      { userId: session.teacherId },
+      {
+        $inc: { earnings: netEarnings, lifetimeEarnings: netEarnings },
+      }
+    );
 
     await createNotification(session.studentId, "session_completed", `Your session with ${req.user.fullName} is complete. We'd love to hear your feedback!`, "/my-appointments");
     res.status(200).json({ success: true, message: "Session marked as completed successfully.", session });

@@ -5,13 +5,23 @@ import axios from "../../utils/axios";
 import { toast } from "react-toastify";
 import { AppContext } from "@/context/AppContext";
 import ConfirmationModal from "@/components/ui/ConfirmationModal";
+import DisputeModal from "@/components/ui/DisputeModal"; // Import the DisputeModal
 import { Button } from "@/components/ui/button";
 
 const Sessions = () => {
   const { backendUrl, user } = useContext(AppContext);
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalState, setModalState] = useState({
+
+  // State for the confirmation modal
+  const [confirmModalState, setConfirmModalState] = useState({
+    isOpen: false,
+    sessionId: null,
+    isLoading: false,
+  });
+
+  // State for the dispute modal
+  const [disputeModalState, setDisputeModalState] = useState({
     isOpen: false,
     sessionId: null,
     isLoading: false,
@@ -48,21 +58,21 @@ const Sessions = () => {
     }
   };
 
+  // --- Confirmation Modal Logic ---
   const handleOpenConfirmModal = (sessionId) => {
-    setModalState({ isOpen: true, sessionId, isLoading: false });
+    setConfirmModalState({ isOpen: true, sessionId, isLoading: false });
   };
 
   const handleCloseConfirmModal = () => {
-    setModalState({ isOpen: false, sessionId: null, isLoading: false });
+    setConfirmModalState({ isOpen: false, sessionId: null, isLoading: false });
   };
 
   const handleConfirmSession = async (sessionLink) => {
-    setModalState((prev) => ({ ...prev, isLoading: true }));
+    setConfirmModalState((prev) => ({ ...prev, isLoading: true }));
     try {
-      const response = await axios.put(`${backendUrl}/api/bookings/${modalState.sessionId}/confirm`, {
+      const response = await axios.put(`${backendUrl}/api/bookings/${confirmModalState.sessionId}/confirm`, {
         sessionLink,
       });
-
       if (response.data.success) {
         toast.success("Session confirmed successfully!");
         handleCloseConfirmModal();
@@ -71,7 +81,32 @@ const Sessions = () => {
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to confirm session.");
     } finally {
-      setModalState((prev) => ({ ...prev, isLoading: false }));
+      setConfirmModalState((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  // --- Dispute Modal Logic ---
+  const handleOpenDisputeModal = (sessionId) => {
+    setDisputeModalState({ isOpen: true, sessionId, isLoading: false });
+  };
+
+  const handleCloseDisputeModal = () => {
+    setDisputeModalState({ isOpen: false, sessionId: null, isLoading: false });
+  };
+
+  const handleDisputeSubmit = async ({ reason, details }) => {
+    setDisputeModalState((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/disputes/session/${disputeModalState.sessionId}`, { reason, details });
+      if (data.success) {
+        toast.success(data.message);
+        handleCloseDisputeModal();
+        // Optionally refetch sessions or update UI to show "Dispute Filed"
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit dispute.");
+    } finally {
+      setDisputeModalState((prev) => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -86,7 +121,7 @@ const Sessions = () => {
           </p>
         </div>
       </div>
-      <div className="w-full sm:w-auto mt-2 sm:mt-0 flex flex-col sm:flex-row gap-2">
+      <div className="w-full sm:w-auto mt-2 sm:mt-0 flex flex-col sm:flex-row items-center gap-2">
         {type === "pending" && (
           <Button onClick={() => handleOpenConfirmModal(session._id)} className="w-full sm:w-auto bg-primary">
             Confirm Booking
@@ -105,6 +140,12 @@ const Sessions = () => {
           </>
         )}
         {type === "past" && <span className={`text-sm font-semibold capitalize px-3 py-1 rounded-full ${session.status === "completed" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>{session.status}</span>}
+
+        {(type === "upcoming" || type === "past") && (
+          <Button variant="link" className="text-xs text-gray-500 h-auto p-0" onClick={() => handleOpenDisputeModal(session._id)}>
+            Report Issue
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -134,7 +175,8 @@ const Sessions = () => {
         {pastSessions.length > 0 ? <div className="space-y-4">{pastSessions.map((session) => renderSessionCard(session, "past"))}</div> : <p className="text-gray-500">You have no past sessions.</p>}
       </div>
 
-      <ConfirmationModal isOpen={modalState.isOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmSession} isLoading={modalState.isLoading} />
+      <ConfirmationModal isOpen={confirmModalState.isOpen} onClose={handleCloseConfirmModal} onConfirm={handleConfirmSession} isLoading={confirmModalState.isLoading} />
+      <DisputeModal isOpen={disputeModalState.isOpen} onClose={handleCloseDisputeModal} onSubmit={handleDisputeSubmit} isLoading={disputeModalState.isLoading} />
     </div>
   );
 };

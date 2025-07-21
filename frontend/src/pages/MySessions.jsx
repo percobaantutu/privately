@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import ReviewModal from "@/components/ui/ReviewModal";
 import CancellationModal from "@/components/ui/CancellationModal";
+import DisputeModal from "@/components/ui/DisputeModal"; // Import the new DisputeModal
 
 function MySessions() {
   const { backendUrl } = useContext(AppContext);
@@ -15,23 +16,28 @@ function MySessions() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // State for the review modal
+  // Review Modal State
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const [reviewedSessions, setReviewedSessions] = useState(new Set());
 
+  // Cancellation Modal State
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [sessionToCancel, setSessionToCancel] = useState(null);
   const [cancellationInfo, setCancellationInfo] = useState({ message: "" });
   const [isCancelling, setIsCancelling] = useState(false);
-  const [reviewedSessions, setReviewedSessions] = useState(new Set());
+
+  // Dispute Modal State
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
+  const [disputeSessionId, setDisputeSessionId] = useState(null);
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
 
   const fetchBookings = async () => {
     try {
       const { data } = await axios.get(`${backendUrl}/api/bookings/user`);
       if (data.success) {
         setBookings(data.bookings);
-        // After fetching bookings, check which ones are reviewed
         checkReviewedSessions(data.bookings);
       }
     } catch (error) {
@@ -41,6 +47,11 @@ function MySessions() {
     }
   };
 
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  // --- Cancellation Logic ---
   const handleOpenCancelModal = (booking) => {
     const sessionTime = new Date(booking.date).getTime();
     const now = new Date().getTime();
@@ -69,12 +80,10 @@ function MySessions() {
     if (!sessionToCancel) return;
     setIsCancelling(true);
     try {
-      // ✅ FIX: Add an empty object {} as the second argument for the request body.
       const { data } = await axios.put(`${backendUrl}/api/bookings/${sessionToCancel._id}/cancel`, {});
-
       if (data.success) {
         toast.success(data.message);
-        fetchBookings(); // Refresh the list
+        fetchBookings();
       } else {
         toast.error(data.message);
       }
@@ -86,6 +95,7 @@ function MySessions() {
     }
   };
 
+  // --- Review Logic ---
   const checkReviewedSessions = async (bookingsToCheck) => {
     const completedSessions = bookingsToCheck.filter((b) => b.status === "completed");
     const reviewed = new Set();
@@ -102,10 +112,6 @@ function MySessions() {
     setReviewedSessions(reviewed);
   };
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
-
   const handleOpenReviewModal = (sessionId) => {
     setSelectedSessionId(sessionId);
     setIsReviewModalOpen(true);
@@ -118,24 +124,50 @@ function MySessions() {
 
   const handleReviewSubmit = async ({ rating, comment }) => {
     if (!selectedSessionId) return;
-    setIsSubmitting(true);
+    setIsSubmittingReview(true);
     try {
       const response = await axios.post(`${backendUrl}/api/reviews/session/${selectedSessionId}`, { rating, comment });
       if (response.data.success) {
         toast.success("Review submitted successfully!");
         handleCloseReviewModal();
-        // Add the session to our reviewed set so the button hides immediately
         setReviewedSessions((prev) => new Set(prev).add(selectedSessionId));
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to submit review.");
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingReview(false);
+    }
+  };
+
+  // --- Dispute Logic ---
+  const handleOpenDisputeModal = (sessionId) => {
+    setDisputeSessionId(sessionId);
+    setIsDisputeModalOpen(true);
+  };
+
+  const handleCloseDisputeModal = () => {
+    setDisputeSessionId(null);
+    setIsDisputeModalOpen(false);
+  };
+
+  const handleDisputeSubmit = async ({ reason, details }) => {
+    if (!disputeSessionId) return;
+    setIsSubmittingDispute(true);
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/disputes/session/${disputeSessionId}`, { reason, details });
+      if (data.success) {
+        toast.success(data.message);
+        handleCloseDisputeModal();
+        // Optionally, refetch bookings to show a "Dispute Filed" status if you add one
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to submit dispute.");
+    } finally {
+      setIsSubmittingDispute(false);
     }
   };
 
   const getStatusClass = (status) => {
-    // ... (this function remains the same)
     switch (status) {
       case "confirmed":
         return "text-blue-600 bg-blue-100";
@@ -152,8 +184,9 @@ function MySessions() {
 
   return (
     <>
-      <ReviewModal isOpen={isReviewModalOpen} onClose={handleCloseReviewModal} onSubmit={handleReviewSubmit} isLoading={isSubmitting} />
+      <ReviewModal isOpen={isReviewModalOpen} onClose={handleCloseReviewModal} onSubmit={handleReviewSubmit} isLoading={isSubmittingReview} />
       <CancellationModal isOpen={isCancelModalOpen} onClose={handleCloseCancelModal} onConfirm={confirmCancellation} isLoading={isCancelling} cancellationInfo={cancellationInfo} />
+      <DisputeModal isOpen={isDisputeModalOpen} onClose={handleCloseDisputeModal} onSubmit={handleDisputeSubmit} isLoading={isSubmittingDispute} />
       <div>
         <p className="pb-3 mt-12 text-lg font-medium text-gray-600 border-b">My Sessions</p>
         {loading ? (
@@ -197,6 +230,12 @@ function MySessions() {
                   {booking.status === "completed" && !reviewedSessions.has(booking._id) && (
                     <Button variant="outline" className="w-full" onClick={() => handleOpenReviewModal(booking._id)}>
                       Leave a Review
+                    </Button>
+                  )}
+
+                  {(booking.status === "completed" || booking.status === "confirmed") && (
+                    <Button variant="link" className="text-xs text-gray-500" onClick={() => handleOpenDisputeModal(booking._id)}>
+                      Report an Issue
                     </Button>
                   )}
                 </div>

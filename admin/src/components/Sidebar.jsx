@@ -1,5 +1,3 @@
-// admin/src/components/Sidebar.jsx
-
 import { assets } from "@/assets/assets";
 import { AdminContext } from "@/context/AdminContext";
 import React, { useContext } from "react";
@@ -28,10 +26,17 @@ const Sidebar = () => {
             <img src={assets.people_icon} alt="" />
             <p>Teacher list</p>
           </NavLink>
-
           <NavLink to="/verification" className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`}>
             <img src={assets.tick_icon} alt="" className="w-5" />
             <p>Verification</p>
+          </NavLink>
+          <NavLink to="/payouts" className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`}>
+            <img src={assets.earning_icon} alt="" className="w-5" />
+            <p>Payouts</p>
+          </NavLink>
+          <NavLink to="/disputes" className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? "bg-[#F2F3FF] border-r-4 border-primary" : ""}`}>
+            <img src={assets.list_icon} alt="" className="w-5" />
+            <p>Disputes</p>
           </NavLink>
         </ul>
       )}

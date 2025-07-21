@@ -1,8 +1,10 @@
 import User from "../models/userModel.js";
 import TeacherProfile from "../models/teacherProfile.js";
+import Payout from "../models/Payout.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
 import { createNotification } from "./notificationController.js";
 
 // Admin can add a new teacher, who will be auto-verified.
@@ -31,7 +33,7 @@ const addTeacherByAdmin = async (req, res) => {
       password: hashedPassword,
       role: "teacher",
       profilePicture: imageUpload.secure_url,
-      isVerified: true, // Teachers added by admin are automatically verified
+      isVerified: true,
       isActive: true,
     });
 
@@ -54,7 +56,6 @@ const addTeacherByAdmin = async (req, res) => {
   }
 };
 
-// Admin login remains the same.
 const loginAdmin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -70,7 +71,6 @@ const loginAdmin = async (req, res) => {
   }
 };
 
-// This function toggles the teacher's 'isActive' status.
 const updateTeacherStatus = async (req, res) => {
   try {
     const { teacherId } = req.body;
@@ -92,7 +92,6 @@ const updateTeacherStatus = async (req, res) => {
 
 const getAllTeachersForAdmin = async (req, res) => {
   try {
-    // Find all users with the role of 'teacher', regardless of their 'isActive' or 'isVerified' status.
     const teachersAsUsers = await User.find({ role: "teacher" }).select("-password").lean();
 
     if (!teachersAsUsers.length) {
@@ -100,7 +99,6 @@ const getAllTeachersForAdmin = async (req, res) => {
     }
 
     const teacherUserIds = teachersAsUsers.map((teacher) => teacher._id);
-
     const teacherProfiles = await TeacherProfile.find({
       userId: { $in: teacherUserIds },
     }).lean();
@@ -110,9 +108,7 @@ const getAllTeachersForAdmin = async (req, res) => {
     const fullTeacherData = teachersAsUsers.map((user) => {
       const profile = profileMap.get(user._id.toString());
       return {
-        // Combine user and profile data
         ...user,
-        // Ensure primary _id is from the user model
         _id: user._id,
         fullName: user.fullName,
         profilePicture: user.profilePicture,
@@ -120,7 +116,6 @@ const getAllTeachersForAdmin = async (req, res) => {
         degree: profile?.degree,
         experience: profile?.experience,
         fees: profile?.hourlyRate,
-        // Add any other fields the admin list might need
       };
     });
 
@@ -131,9 +126,34 @@ const getAllTeachersForAdmin = async (req, res) => {
   }
 };
 
+const getSingleTeacherForAdmin = async (req, res) => {
+  try {
+    const teacherUser = await User.findById(req.params.id).select("-password").lean();
+    if (!teacherUser || teacherUser.role !== "teacher") {
+      return res.status(404).json({ success: false, message: "Teacher not found." });
+    }
+
+    const teacherProfile = await TeacherProfile.findOne({ userId: teacherUser._id }).lean();
+    if (!teacherProfile) {
+      // This case might happen if a user was created but profile creation failed.
+      return res.status(404).json({ success: false, message: "Teacher profile data not found." });
+    }
+
+    // Combine both objects into a single response
+    const fullTeacherDetails = {
+      ...teacherUser,
+      teacherProfile,
+    };
+
+    res.status(200).json({ success: true, teacher: fullTeacherDetails });
+  } catch (error) {
+    console.error("Error fetching single teacher for admin:", error);
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
 const getPendingTeachers = async (req, res) => {
   try {
-    // Find users who are teachers but are not yet verified
     const pendingTeachers = await User.find({ role: "teacher", isVerified: false }).select("-password").lean();
     res.status(200).json({ success: true, teachers: pendingTeachers });
   } catch (error) {
@@ -142,17 +162,14 @@ const getPendingTeachers = async (req, res) => {
   }
 };
 
-// NEW FUNCTION 2: Verify a specific teacher
 const verifyTeacher = async (req, res) => {
   try {
-    const { teacherId } = req.params; // Get the ID from the URL parameter
-
+    const { teacherId } = req.params;
     const teacher = await User.findById(teacherId);
 
     if (!teacher || teacher.role !== "teacher") {
       return res.status(404).json({ success: false, message: "Teacher not found." });
     }
-
     if (teacher.isVerified) {
       return res.status(400).json({ success: false, message: "This teacher is already verified." });
     }
@@ -168,4 +185,61 @@ const verifyTeacher = async (req, res) => {
   }
 };
 
-export { addTeacherByAdmin, loginAdmin, updateTeacherStatus, getAllTeachersForAdmin, getPendingTeachers, verifyTeacher };
+export const getPendingPayouts = async (req, res) => {
+  try {
+    const MIN_PAYOUT_THRESHOLD = 100000;
+    const teachersToPay = await TeacherProfile.find({
+      earnings: { $gte: MIN_PAYOUT_THRESHOLD },
+    }).populate("userId", "fullName email");
+
+    res.status(200).json({ success: true, payouts: teachersToPay });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error fetching payouts." });
+  }
+};
+
+export const processPayouts = async (req, res) => {
+  const { teacherProfileIds } = req.body;
+  if (!teacherProfileIds || !Array.isArray(teacherProfileIds) || teacherProfileIds.length === 0) {
+    return res.status(400).json({ success: false, message: "No teachers selected for payout." });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    for (const profileId of teacherProfileIds) {
+      const profile = await TeacherProfile.findById(profileId).session(session);
+      const amountToPay = profile.earnings;
+
+      if (profile && amountToPay > 0) {
+        await Payout.create(
+          [
+            {
+              teacherProfileId: profile._id,
+              userId: profile.userId,
+              amount: amountToPay,
+            },
+          ],
+          { session }
+        );
+
+        profile.earnings = 0;
+        await profile.save({ session });
+
+        await createNotification(profile.userId, "payout_processed", `Your recent earnings of ${amountToPay} have been processed and are on their way.`, "/teacher/dashboard/earnings");
+      }
+    }
+
+    await session.commitTransaction();
+    res.status(200).json({ success: true, message: "Payouts marked as processed successfully." });
+  } catch (error) {
+    await session.abortTransaction();
+    console.error("Payout processing error:", error);
+    res.status(500).json({ success: false, message: "Error processing payouts." });
+  } finally {
+    session.endSession();
+  }
+};
+
+export { addTeacherByAdmin, loginAdmin, updateTeacherStatus, getAllTeachersForAdmin, getPendingTeachers, verifyTeacher, getSingleTeacherForAdmin };
