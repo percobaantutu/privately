@@ -2,12 +2,12 @@ import crypto from "crypto";
 import Session from "../models/Session.js";
 import { createNotification } from "./notificationController.js";
 import User from "../models/userModel.js";
+import { sendEmail } from "../utils/email.js"; // IMPORT THE EMAIL UTILITY
 
 export const paymentWebhook = async (req, res) => {
   try {
     const notificationJson = req.body;
 
-    // 1. Verify the webhook signature (for security)
     const signatureKey = crypto
       .createHash("sha512")
       .update(notificationJson.order_id + notificationJson.status_code + notificationJson.gross_amount + process.env.MIDTRANS_SERVER_KEY)
@@ -20,31 +20,44 @@ export const paymentWebhook = async (req, res) => {
     const transactionStatus = notificationJson.transaction_status;
     const fraudStatus = notificationJson.fraud_status;
 
-    const session = await Session.findById(sessionId);
+    // --- MODIFIED: Populate teacher and student details for email ---
+    const session = await Session.findById(sessionId).populate("teacherId", "fullName email").populate("studentId", "fullName email");
+    // ----------------------------------------------------------------
+
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
     }
 
-    // 2. Update session based on payment status
     if (transactionStatus == "capture" || transactionStatus == "settlement") {
       if (fraudStatus == "accept") {
-        // Payment is successful and secure
         session.paymentStatus = "paid";
-        session.status = "pending_confirmation"; // Now it waits for teacher confirmation
+        session.status = "pending_confirmation";
         await session.save();
 
-        // Notify the teacher about the new booking request
-        const student = await User.findById(session.studentId);
-        await createNotification(session.teacherId, "new_booking", `${student.fullName} has booked and paid for a session. Please confirm.`, "/teacher/dashboard/sessions");
+        await createNotification(session.teacherId, "new_booking", `${session.studentId.fullName} has booked and paid for a session. Please confirm.`, "/teacher/dashboard/sessions");
+
+        // --- ADDED: Send emails ---
+        // Email to Teacher
+        await sendEmail(session.teacherId.email, "new_booking_teacher", {
+          teacherName: session.teacherId.fullName,
+          studentName: session.studentId.fullName,
+          sessionDate: new Date(session.date).toLocaleDateString(),
+        });
+
+        // Email to Student
+        await sendEmail(session.studentId.email, "new_booking_student", {
+          studentName: session.studentId.fullName,
+          teacherName: session.teacherId.fullName,
+          sessionDate: new Date(session.date).toLocaleDateString(),
+        });
+        // -------------------------
       }
     } else if (transactionStatus == "cancel" || transactionStatus == "deny" || transactionStatus == "expire") {
-      // Payment failed or was cancelled
       session.paymentStatus = "failed";
-      session.status = "cancelled"; // Or a new status like 'payment_failed'
+      session.status = "cancelled";
       await session.save();
     }
 
-    // 3. Respond to the gateway
     res.status(200).send("Webhook received successfully.");
   } catch (error) {
     console.error("Webhook error:", error);

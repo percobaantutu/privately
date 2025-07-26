@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import { createNotification } from "./notificationController.js";
+import { sendEmail } from "../utils/email.js";
 
 // Admin can add a new teacher, who will be auto-verified.
 const addTeacherByAdmin = async (req, res) => {
@@ -209,7 +210,7 @@ export const processPayouts = async (req, res) => {
 
   try {
     for (const profileId of teacherProfileIds) {
-      const profile = await TeacherProfile.findById(profileId).session(session);
+      const profile = await TeacherProfile.findById(profileId).populate("userId", "fullName email").session(session);
       const amountToPay = profile.earnings;
 
       if (profile && amountToPay > 0) {
@@ -228,6 +229,10 @@ export const processPayouts = async (req, res) => {
         await profile.save({ session });
 
         await createNotification(profile.userId, "payout_processed", `Your recent earnings of ${amountToPay} have been processed and are on their way.`, "/teacher/dashboard/earnings");
+        await sendEmail(profile.userId.email, "payout_processed", {
+          teacherName: profile.userId.fullName,
+          amount: amountToPay,
+        });
       }
     }
 

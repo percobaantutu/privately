@@ -3,7 +3,8 @@ import TeacherProfile from "../models/teacherProfile.js";
 import validator from "validator";
 import { createNotification } from "./notificationController.js";
 import User from "../models/userModel.js";
-import snap from "../config/midtrans.js"; // Import Midtrans config
+import snap from "../config/midtrans.js";
+import { sendEmail } from "../utils/email.js";
 
 // Student: Create a new session booking
 export const createBooking = async (req, res) => {
@@ -111,11 +112,21 @@ export const confirmSession = async (req, res) => {
       return res.status(400).json({ success: false, message: "A valid session link is required." });
     }
 
-    const session = await Session.findById(sessionId);
+    // --- MODIFIED: Added checks for data integrity ---
+    const session = await Session.findById(sessionId).populate("studentId", "fullName email").populate("teacherId", "fullName email"); // Populating email for the teacher as well
+
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
     }
-    if (session.teacherId.toString() !== teacherId.toString()) {
+
+    // This check handles the case where the teacher record was deleted.
+    if (!session.teacherId) {
+      console.error(`Data integrity issue: Session ${sessionId} has an invalid teacherId.`);
+      return res.status(404).json({ success: false, message: "The teacher associated with this booking could not be found." });
+    }
+    // ----------------------------------------------------
+
+    if (session.teacherId._id.toString() !== teacherId.toString()) {
       return res.status(403).json({ success: false, message: "You are not authorized to confirm this session." });
     }
     if (session.status !== "pending_confirmation") {
@@ -125,7 +136,15 @@ export const confirmSession = async (req, res) => {
     session.sessionLink = sessionLink;
     session.status = "confirmed";
     await session.save();
-    await createNotification(session.studentId, "booking_confirmed", `Your session with ${req.user.fullName} on ${new Date(session.date).toLocaleDateString()} has been confirmed.`, "/my-appointments");
+
+    await createNotification(session.studentId, "booking_confirmed", `Your session with ${session.teacherId.fullName} on ${new Date(session.date).toLocaleDateString()} has been confirmed.`, "/my-appointments");
+
+    await sendEmail(session.studentId.email, "session_confirmed", {
+      studentName: session.studentId.fullName,
+      teacherName: session.teacherId.fullName,
+      sessionDate: new Date(session.date).toLocaleDateString(),
+      sessionLink: sessionLink,
+    });
 
     res.status(200).json({ success: true, message: "Session confirmed successfully.", session });
   } catch (error) {
@@ -201,7 +220,7 @@ export const cancelBooking = async (req, res) => {
     const { bookingId } = req.params;
     const cancelingUser = req.user;
 
-    const session = await Session.findById(bookingId);
+    const session = await Session.findById(bookingId).populate("studentId", "fullName email").populate("teacherId", "fullName email");
 
     if (!session) {
       return res.status(404).json({ success: false, message: "Session not found." });
@@ -224,6 +243,13 @@ export const cancelBooking = async (req, res) => {
 
       await createNotification(session.studentId, "booking_cancelled_by_teacher", `Your session with ${cancelingUser.fullName} has been cancelled. A full refund will be processed.`, "/my-appointments");
 
+      await sendEmail(session.studentId.email, "session_cancelled", {
+        recipientName: session.studentId.fullName,
+        cancellerName: cancelingUser.fullName,
+        sessionDate: new Date(session.date).toLocaleDateString(),
+        reason: "The session was cancelled by the teacher. A full refund will be processed.",
+      });
+
       return res.status(200).json({ success: true, message: "Session cancelled successfully. The student has been notified and refunded." });
     }
 
@@ -240,6 +266,13 @@ export const cancelBooking = async (req, res) => {
       await session.save();
 
       await createNotification(session.teacherId, "booking_cancelled_by_student", `${cancelingUser.fullName} has cancelled their upcoming session.`, "/teacher/dashboard/sessions");
+
+      await sendEmail(session.teacherId.email, "session_cancelled", {
+        recipientName: session.teacherId.fullName,
+        cancellerName: cancelingUser.fullName,
+        sessionDate: new Date(session.date).toLocaleDateString(),
+        reason: "The session was cancelled by the student.",
+      });
 
       if (hoursUntil > 24) {
         return res.status(200).json({ success: true, message: "Session cancelled successfully. A full refund will be processed." });

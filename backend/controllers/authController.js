@@ -1,8 +1,9 @@
-import User from "../models/userModel.js"; // Note the model name change if you aliased it
+import User from "../models/userModel.js";
 import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
+import { sendEmail } from "../utils/email.js"; // IMPORT THE EMAIL UTILITY
 
 // Register a new user (student or teacher)
 export const register = async (req, res) => {
@@ -42,7 +43,6 @@ export const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // ✅ THE FIX: Build the user data object BEFORE creating the model instance.
     const userData = {
       fullName,
       email,
@@ -52,22 +52,17 @@ export const register = async (req, res) => {
 
     // --- Role-Specific Logic ---
     if (userRole === "teacher") {
-      // Teacher-specific validation
       if (!speciality || !degree || !experience || !about || !fees || !address) {
         return res.status(400).json({ success: false, message: "All teacher profile fields are required for registration." });
       }
-      // Add the isVerified property to our data object
       userData.isVerified = false;
     } else {
-      // Add the isVerified property for students
       userData.isVerified = true;
     }
 
-    // ✅ Now create the new user instance with the complete data object
     const newUser = new User(userData);
     const savedUser = await newUser.save();
 
-    // If it was a teacher, create their profile now
     if (userRole === "teacher") {
       await TeacherProfile.create({
         userId: savedUser._id,
@@ -79,6 +74,10 @@ export const register = async (req, res) => {
         address,
       });
     }
+
+    // --- ADDED: Send welcome email ---
+    await sendEmail(savedUser.email, "welcome", { name: savedUser.fullName });
+    // ------------------------------------
 
     res.status(201).json({
       success: true,
@@ -100,7 +99,6 @@ export const login = async (req, res) => {
       return res.status(404).json({ success: false, message: "Invalid credentials." });
     }
 
-    // Check if the teacher account is verified
     if (user.role === "teacher" && !user.isVerified) {
       return res.status(403).json({ success: false, message: "Your teacher account has not been verified yet." });
     }
@@ -120,7 +118,6 @@ export const login = async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    // Prepare user object for the response, excluding the password
     const userResponse = {
       _id: user._id,
       fullName: user.fullName,
@@ -151,13 +148,12 @@ export const logout = (req, res) => {
 // Get current user
 export const getMe = async (req, res) => {
   try {
-    let user = req.user.toObject(); // Convert mongoose document to plain object to allow modification
+    let user = req.user.toObject();
 
-    // If the user is a teacher, find their profile and attach it
     if (user.role === "teacher") {
       const teacherProfile = await TeacherProfile.findOne({ userId: user._id }).lean();
       if (teacherProfile) {
-        user.teacherProfile = teacherProfile; // Attach profile to the user object
+        user.teacherProfile = teacherProfile;
       }
     }
 
@@ -174,10 +170,9 @@ export const getMe = async (req, res) => {
   }
 };
 
-// Update user profile (only name, phone, address, gender, dob, image)
+// Update user profile
 export const updateUserProfile = async (req, res) => {
   try {
-    // Assuming isAuthenticated middleware has already attached user to req.user
     const user = await User.findById(req.user._id);
 
     if (!user) {
@@ -190,7 +185,7 @@ export const updateUserProfile = async (req, res) => {
     if (address !== undefined) user.address = address;
     if (gender !== undefined) user.gender = gender;
     if (dob !== undefined) user.dob = dob;
-    if (image !== undefined) user.image = image; // Allow updating image URL directly
+    if (image !== undefined) user.image = image;
 
     await user.save();
 
@@ -206,7 +201,7 @@ export const updateUserProfile = async (req, res) => {
         gender: user.gender,
         dob: user.dob,
         image: user.image,
-        role: user.role, // Include role in response
+        role: user.role,
       },
     });
   } catch (error) {
@@ -235,7 +230,6 @@ export const uploadProfilePicture = async (req, res) => {
       public_id: `user_${user._id}_${Date.now()}`,
     });
 
-    // ✅ CORRECTED FIELD: Use 'profilePicture' instead of 'image'
     user.profilePicture = imageUpload.secure_url;
     await user.save();
 

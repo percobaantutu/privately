@@ -1,18 +1,36 @@
-// frontend/src/pages/TeacherDashboard/index.jsx
+// File: frontend/src/pages/TeacherDashboard/index.jsx
 
-import { useContext, useEffect } from "react"; // ✅ Make sure useEffect is imported
+import { useContext, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { AppContext } from "@/context/AppContext";
 import { toast } from "react-toastify";
-import { User, Users, CalendarCheck2, DollarSign, LogOut } from "lucide-react";
+import { User, Users, CalendarCheck2, DollarSign, LogOut, AlertTriangle, Edit } from "lucide-react";
+
+// Onboarding Banner Component
+const OnboardingBanner = ({ onNavigate }) => (
+  <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-r-lg mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="flex items-start sm:items-center gap-3">
+      <AlertTriangle className="h-6 w-6 flex-shrink-0" />
+      <div>
+        <p className="font-bold">Action Required: Complete Your Profile</p>
+        <p className="text-sm">Please add your bank and verification details to become eligible for payouts.</p>
+      </div>
+    </div>
+    <button onClick={onNavigate} className="bg-yellow-500 text-white font-semibold py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-yellow-600 transition-colors w-full sm:w-auto flex-shrink-0">
+      <Edit size={16} />
+      Update Profile
+    </button>
+  </div>
+);
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const { user, logout, loading: isAppLoading } = useContext(AppContext);
 
-  // ✅ FIX: The navigation logic is now inside a useEffect hook.
+  // Logic to check if profile is incomplete for payouts
+  const isProfileIncomplete = user && (!user.teacherProfile?.bankDetails?.accountNumber || !user.teacherProfile?.verificationDetails?.idNumber);
+
   useEffect(() => {
-    // This effect runs when the app's loading status changes or the user state changes.
     if (!isAppLoading && !user) {
       toast.error("You must be logged in to view the dashboard.");
       navigate("/teacher/login");
@@ -21,7 +39,6 @@ const TeacherDashboard = () => {
 
   const handleLogout = async () => {
     await logout();
-    // The AppContext logout function should handle navigation or state change that triggers the effect above.
   };
 
   const navLinks = [
@@ -31,7 +48,6 @@ const TeacherDashboard = () => {
     { to: "/teacher/dashboard/earnings", icon: <DollarSign size={20} />, text: "Earnings" },
   ];
 
-  // While the app context is loading the user, show a loading spinner.
   if (isAppLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-85px)]">
@@ -40,8 +56,6 @@ const TeacherDashboard = () => {
     );
   }
 
-  // If we're done loading but there's no user, we render null and the useEffect will handle the redirect.
-  // This prevents rendering the dashboard for a split second before redirecting.
   if (!user) {
     return null;
   }
@@ -79,6 +93,7 @@ const TeacherDashboard = () => {
 
       {/* --- Main Content Area --- */}
       <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+        {isProfileIncomplete && <OnboardingBanner onNavigate={() => navigate("/teacher/dashboard/profile")} />}
         <Outlet context={{ user }} />
       </main>
     </div>

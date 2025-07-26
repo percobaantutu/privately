@@ -87,7 +87,10 @@ function Navbar({ isTeacherView = false }) {
                   {user.role === "teacher" ? (
                     <DropdownMenuItem onClick={() => navigate("/teacher/dashboard")}>Teacher Dashboard</DropdownMenuItem>
                   ) : (
-                    <DropdownMenuItem onClick={() => navigate("/my-appointments")}>My Sessions</DropdownMenuItem>
+                    <>
+                      <DropdownMenuItem onClick={() => navigate("/my-appointments")}>My Sessions</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate("/my-disputes")}>My Disputes</DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

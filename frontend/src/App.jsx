@@ -2,7 +2,7 @@
 
 import "./App.css";
 import React from "react";
-import { Routes, Route, useLocation } from "react-router-dom"; // ✅ Import useLocation
+import { Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -22,6 +22,9 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Sessions from "./pages/TeacherDashboard/Sessions";
 import Earnings from "./pages/TeacherDashboard/Earnings";
+import MyDisputes from "./pages/MyDisputes";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 function App() {
   const location = useLocation(); // ✅ Get the current location
@@ -56,12 +59,15 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-appointments" element={<MySessions />} />
+            <Route path="/my-disputes" element={<MyDisputes />} />
             <Route path="/session/:teacherId" element={<Session />} />
             <Route path="/teachers/:speciality" element={<Teachers />} />
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/login" element={<Login />} />
             <Route path="/teacher/login" element={<TeacherLogin />} />
             <Route path="/teacher/register" element={<TeacherRegister />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
           <Footer />
         </div>
