@@ -2,24 +2,23 @@ import { assets } from "@/assets/assets_frontend/assets";
 import { Button } from "@/components/ui/button";
 import React, { useState, useContext, useEffect } from "react";
 import { AppContext } from "@/context/AppContext";
-import axios from "axios";
+import axios from "../utils/axios"; // Use the correct axios instance
 
 function MyProfile() {
-  const { user, updateUserProfile, loading } = useContext(AppContext);
+  const { user, updateUserProfile, loading, backendUrl, refreshUserProfile } = useContext(AppContext);
   const [userData, setUserData] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
-  const { backendUrl} = useContext(AppContext);
 
   useEffect(() => {
     if (user) {
       setUserData({
-        name: user.name || "",
-        image: user.image || "",
+        name: user.fullName || "",
+        profilePicture: user.profilePicture || "", // FIX: Use profilePicture
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || { line1: "", line2: "" },
         gender: user.gender || "",
-        dob: user.dob || ""
+        dob: user.dob || "",
       });
     }
   }, [user]);
@@ -36,17 +35,13 @@ function MyProfile() {
     try {
       const res = await axios.post(`${backendUrl}/api/auth/upload-profile-picture`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          "Content-Type": "multipart/form-data",
         },
-        withCredentials: true
       });
       if (res.data.success) {
-        setUserData((prev) => ({ ...prev, image: res.data.imageUrl }));
-        updateUserProfile({
-          ...userData,
-          image: res.data.imageUrl
-        });
-        alert("Image uploaded successfully!");
+        setUserData((prev) => ({ ...prev, profilePicture: res.data.imageUrl })); // FIX: Use profilePicture
+        await refreshUserProfile(); // Refresh global user state
+        alert("Image uploaded successfully! Click 'Save Information' to finalize.");
       } else {
         alert(res.data.message || "Image upload failed");
       }
@@ -56,24 +51,28 @@ function MyProfile() {
     }
   };
 
-  const handleSave = () => {
-    updateUserProfile({
+  const handleSave = async () => {
+    // We send 'name' but the backend User model expects 'fullName'.
+    // The updateUserProfile controller has a bug, we will fix it in Part 3.
+    // For now, let's also pass the new profile picture URL.
+    const success = await updateUserProfile({
       name: userData.name,
       phone: userData.phone,
       address: userData.address,
       gender: userData.gender,
       dob: userData.dob,
-      image: userData.image
+      image: userData.profilePicture, // FIX: Pass profilePicture as 'image' for the backend controller
     });
-    setIsEdit(false);
+    if (success) {
+      setIsEdit(false);
+    }
   };
 
   return (
     <div className="max-w-lg flex flex-col gap-2 text-sm pt-5">
-      <img src={userData.image || assets.profile_pic || "/default-profile.png"} className="w-36 rounded" alt="Profile" />
-      {isEdit && (
-        <input type="file" accept="image/*" onChange={handleImageChange} />
-      )}
+      {/* FIX: Use userData.profilePicture */}
+      <img src={userData.profilePicture || assets.profile_pic} className="w-36 rounded" alt="Profile" />
+      {isEdit && <input type="file" accept="image/*" onChange={handleImageChange} />}
       {isEdit ? <input type="text" value={userData.name} onChange={(e) => setUserData((prev) => ({ ...prev, name: e.target.value }))} /> : <p className="font-medium text-3xl text-[#262626] mt-4">{userData.name}</p>}
 
       <hr className="bg-[#ADADAD] h-[1px] border-none" />
@@ -130,9 +129,15 @@ function MyProfile() {
           <p className="font-medium">Gender:</p>
           {isEdit ? (
             <select className="max-w-20 bg-gray-100" onChange={(e) => setUserData((prev) => ({ ...prev, gender: e.target.value }))} value={userData.gender}>
-              <option value="male" className="text-gray-500">Male</option>
-              <option value="female" className="text-gray-500">Female</option>
-              <option value="Not Selected" className="text-gray-500">Not Selected</option>
+              <option value="male" className="text-gray-500">
+                Male
+              </option>
+              <option value="female" className="text-gray-500">
+                Female
+              </option>
+              <option value="Not Selected" className="text-gray-500">
+                Not Selected
+              </option>
             </select>
           ) : (
             <p className="text-gray-500">{userData.gender}</p>

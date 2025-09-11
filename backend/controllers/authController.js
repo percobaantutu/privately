@@ -1,3 +1,4 @@
+import { v2 as cloudinary } from "cloudinary"; // <--- THIS IS THE FIX
 import User from "../models/userModel.js";
 import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
@@ -180,29 +181,37 @@ export const updateUserProfile = async (req, res) => {
     }
 
     const { name, phone, address, gender, dob, image } = req.body;
-    if (name !== undefined) user.name = name;
+
+    // FIX: The User model uses 'fullName', not 'name'. This ensures the name updates correctly.
+    if (name !== undefined) user.fullName = name;
     if (phone !== undefined) user.phone = phone;
     if (address !== undefined) user.address = address;
     if (gender !== undefined) user.gender = gender;
     if (dob !== undefined) user.dob = dob;
-    if (image !== undefined) user.image = image;
+
+    // FIX: The User model uses 'profilePicture', not 'image'.
+    if (image !== undefined) user.profilePicture = image;
 
     await user.save();
+
+    // To ensure consistency, we'll manually build the response object
+    // to match the structure used elsewhere.
+    const updatedUser = {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      phone: user.phone,
+      address: user.address,
+      gender: user.gender,
+      dob: user.dob,
+      profilePicture: user.profilePicture, // FIX: Return the correct property name
+      role: user.role,
+    };
 
     res.status(200).json({
       success: true,
       message: "Profile updated successfully",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        gender: user.gender,
-        dob: user.dob,
-        image: user.image,
-        role: user.role,
-      },
+      user: updatedUser,
     });
   } catch (error) {
     console.error("Update profile error:", error);

@@ -77,7 +77,8 @@ function Navbar({ isTeacherView = false }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2 cursor-pointer group relative">
-                  <img src={user.image || assets.profile_pic} alt="user" className="w-10 h-10 rounded-full object-cover" />
+                  {/* FIX: Changed user.image to user.profilePicture */}
+                  <img src={user.profilePicture || assets.profile_pic} alt="user" className="w-10 h-10 rounded-full object-cover" />
                   <img src={assets.dropdown_icon} alt="dropdown" className="w-2.5 hidden sm:block" />
                 </div>
               </DropdownMenuTrigger>

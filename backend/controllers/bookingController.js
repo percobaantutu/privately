@@ -321,7 +321,7 @@ export const completeSession = async (req, res) => {
     session.status = "completed";
     await session.save();
 
-    const commissionRate = 0.05;
+    const commissionRate = 0.2;
     const sessionPrice = session.price;
     const commissionAmount = sessionPrice * commissionRate;
     const netEarnings = sessionPrice - commissionAmount;

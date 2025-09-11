@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 
 // Helper function to handle freezing earnings for a disputed session
 const freezeDisputedEarnings = async (session, transactionSession) => {
-  const commissionRate = 0.05;
+  const commissionRate = 0.2;
   const netEarnings = session.price * (1 - commissionRate);
 
   // Decrement the current balance and increment a new 'disputedEarnings' field
