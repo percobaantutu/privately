@@ -13,6 +13,8 @@ import reviewRoute from "./routes/reviewRoute.js";
 import notificationRoute from "./routes/notificationRoute.js";
 import paymentRoute from "./routes/paymentRoute.js";
 import disputeRoute from "./routes/disputeRoute.js";
+import messageRoute from "./routes/messageRoute.js";
+import { socketApp, socketServer } from "./socket/socket.js";
 
 // App Config
 const app = express();
@@ -48,12 +50,15 @@ app.use("/api/reviews", reviewRoute);
 app.use("/api/notifications", notificationRoute);
 app.use("/api/payments", paymentRoute);
 app.use("/api/disputes", disputeRoute);
+app.use("/api/messages", messageRoute);
 
 app.get("/", (req, res) => {
   res.send("API Working great yeaey!");
 });
 
+socketApp.use(app);
+
 // Start server
-app.listen(PORT, () => {
+socketServer.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
 });

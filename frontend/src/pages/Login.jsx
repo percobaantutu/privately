@@ -4,7 +4,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
 import axios from "../utils/axios"; // Use the configured axios instance
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -143,6 +143,7 @@ const Login = () => {
 
         <p className="w-full text-center">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
+
           <span
             className="text-primary underline cursor-pointer font-medium"
             onClick={() => {
@@ -152,6 +153,13 @@ const Login = () => {
           >
             {isLogin ? "Sign up" : "Login"}
           </span>
+          <br />
+          <p>
+            Are you a teacher?{" "}
+            <span className="text-primary underline cursor-pointer font-medium">
+              <Link to="/teacher/login">Login</Link>
+            </span>
+          </p>
         </p>
       </motion.div>
     </form>

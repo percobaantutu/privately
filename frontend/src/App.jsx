@@ -25,6 +25,7 @@ import Earnings from "./pages/TeacherDashboard/Earnings";
 import MyDisputes from "./pages/MyDisputes";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import Message from "./pages/Messages/Message";
 
 function App() {
   const location = useLocation(); // ✅ Get the current location
@@ -59,6 +60,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/my-profile" element={<MyProfile />} />
             <Route path="/my-appointments" element={<MySessions />} />
+            <Route path="/messages" element={<Message />} />
+            <Route path="/messages/:conversationId" element={<Message />} />
             <Route path="/my-disputes" element={<MyDisputes />} />
             <Route path="/session/:teacherId" element={<Session />} />
             <Route path="/teachers/:speciality" element={<Teachers />} />

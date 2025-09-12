@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Search } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
 import NotificationBell from "./NotificationBell";
+import MessageBell from "./MessageBell";
 
 function Navbar({ isTeacherView = false }) {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function Navbar({ isTeacherView = false }) {
         {user ? (
           <>
             <NotificationBell />
+            <MessageBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <div className="flex items-center gap-2 cursor-pointer group relative">

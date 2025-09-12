@@ -1,5 +1,4 @@
 // File: backend/utils/email.js
-// This is a new file.
 
 import nodemailer from "nodemailer";
 import { welcomeTemplate } from "./emailTemplates/welcomeTemplate.js";
@@ -7,11 +6,12 @@ import { newBookingTeacher, newBookingStudent } from "./emailTemplates/newBookin
 import { sessionConfirmedTemplate } from "./emailTemplates/sessionConfirmedTemplate.js";
 import { sessionCancelledTemplate } from "./emailTemplates/sessionCancelledTemplate.js";
 import { payoutProcessedTemplate } from "./emailTemplates/payoutProcessedTemplate.js";
+import { newMessageTemplate } from "./emailTemplates/newMessageTemplate.js"; // <-- IMPORT NEW TEMPLATE
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
   port: process.env.EMAIL_PORT,
-  secure: false, // true for 465, false for other ports
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -32,14 +32,24 @@ const getEmailTemplate = (templateName, data) => {
       return sessionCancelledTemplate(data.recipientName, data.cancellerName, data.sessionDate, data.reason);
     case "payout_processed":
       return payoutProcessedTemplate(data.teacherName, data.amount);
+    // ADD THE NEW CASE FOR MESSAGES
+    case "new_message":
+      return newMessageTemplate(data.recipientName, data.senderName);
     default:
-      return { subject: "Notification", html: `<p>${data.message}</p>` };
+      // Return a default or null if no template is found
+      console.warn(`Email template "${templateName}" not found.`);
+      return { subject: "Notification from Privately", html: `<p>You have a new notification.</p>` };
   }
 };
 
 export const sendEmail = async (to, templateName, data) => {
   try {
     const { subject, html } = getEmailTemplate(templateName, data);
+
+    if (!subject || !html) {
+      console.error(`Could not generate email content for template: ${templateName}`);
+      return;
+    }
 
     const mailOptions = {
       from: process.env.EMAIL_FROM,

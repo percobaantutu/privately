@@ -128,6 +128,19 @@ function Session() {
     }
   }, [teacherInfo]); // ✅ Dependency array is now correct.
 
+  const handleStartConversation = async () => {
+    if (!teacherId) return;
+    try {
+      const { data } = await axios.post(`${backendUrl}/api/messages/conversation/${teacherId}`);
+      if (data.success) {
+        // Navigate to the messages page. The component will handle fetching.
+        navigate(`/messages`);
+      }
+    } catch (error) {
+      toast.error("Could not start conversation.");
+    }
+  };
+
   useEffect(() => {
     const fetchAvailableSlots = async () => {
       if (!teacherId || !selectedDate) return;
@@ -197,6 +210,12 @@ function Session() {
           <p className="text-gray-600 font-medium mt-4">
             Session fee: <span className="text-gray-800">{formatCurrency(teacherInfo.fees)}</span>
           </p>
+          <Button
+            onClick={handleStartConversation} // We will create this function
+            className="mt-4 bg-secondary text-secondary-foreground"
+          >
+            Message Teacher
+          </Button>
         </div>
       </div>
 
