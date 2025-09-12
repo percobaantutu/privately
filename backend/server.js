@@ -15,6 +15,8 @@ import paymentRoute from "./routes/paymentRoute.js";
 import disputeRoute from "./routes/disputeRoute.js";
 import messageRoute from "./routes/messageRoute.js";
 import { socketApp, socketServer } from "./socket/socket.js";
+import passport from "passport";
+import "./config/passport-setup.js";
 
 // App Config
 const app = express();
@@ -25,6 +27,7 @@ connectCloudinary();
 // Middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(passport.initialize());
 app.use(
   cors({
     origin: ["http://localhost:5173", "http://localhost:5174"], // Allow both frontend and admin

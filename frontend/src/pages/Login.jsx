@@ -5,6 +5,7 @@ import { AppContext } from "@/context/AppContext";
 import axios from "../utils/axios"; // Use the configured axios instance
 import { toast } from "react-toastify";
 import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -141,6 +142,18 @@ const Login = () => {
           {isLoading ? "Processing..." : isLogin ? "Login" : "Create account"}
         </button>
 
+        <a href="http://localhost:4000/api/auth/google" className="w-full">
+          <Button type="button" variant="outline" className="w-full">
+            <svg className="w-4 h-4 mr-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
+              <path
+                fill="currentColor"
+                d="M488 261.8C488 403.3 381.5 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 174 57.9l-67 67C314.6 98.4 282.7 80 248 80c-84.3 0-152 68.6-152 176s67.7 176 152 176c94.2 0 135.3-63.5 140.8-95.3H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z"
+              ></path>
+            </svg>
+            Google
+          </Button>
+        </a>
+
         <p className="w-full text-center">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
 
@@ -153,13 +166,13 @@ const Login = () => {
           >
             {isLogin ? "Sign up" : "Login"}
           </span>
-          <br />
-          <p>
-            Are you a teacher?{" "}
-            <span className="text-primary underline cursor-pointer font-medium">
-              <Link to="/teacher/login">Login</Link>
-            </span>
-          </p>
+        </p>
+
+        <p className="w-full text-center">
+          Are you a teacher?{" "}
+          <span className="text-primary underline cursor-pointer font-medium">
+            <Link to="/teacher/login">Login</Link>
+          </span>
         </p>
       </motion.div>
     </form>
