@@ -119,15 +119,17 @@ export const login = async (req, res) => {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
-    const userResponse = {
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      profilePicture: user.profilePicture,
-    };
+    let userObject = user.toObject(); // Convert to a plain JS object to modify it
 
-    res.status(200).json({ success: true, user: userResponse });
+    if (userObject.role === "teacher") {
+      const teacherProfile = await TeacherProfile.findOne({ userId: userObject._id }).lean();
+      if (teacherProfile) {
+        userObject.teacherProfile = teacherProfile; // Attach the teacher profile
+      }
+    }
+    // -------------------------
+
+    res.status(200).json({ success: true, user: userObject }); // Send the complete user object
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ success: false, message: "Server error during login." });
