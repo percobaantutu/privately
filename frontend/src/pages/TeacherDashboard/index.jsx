@@ -4,7 +4,7 @@ import { useContext, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { AppContext } from "@/context/AppContext";
 import { toast } from "react-toastify";
-import { User, Users, CalendarCheck2, DollarSign, LogOut, AlertTriangle, Edit } from "lucide-react";
+import { User, Users, CalendarCheck2, DollarSign, LogOut, AlertTriangle, Edit, LifeBuoy } from "lucide-react";
 
 // Onboarding Banner Component
 const OnboardingBanner = ({ onNavigate }) => (
@@ -46,6 +46,11 @@ const TeacherDashboard = () => {
     { to: "/teacher/dashboard/sessions", icon: <Users size={20} />, text: "My Sessions" },
     { to: "/teacher/dashboard/availability", icon: <CalendarCheck2 size={20} />, text: "Availability" },
     { to: "/teacher/dashboard/earnings", icon: <DollarSign size={20} />, text: "Earnings" },
+    {
+      to: "/teacher/dashboard/guide",
+      icon: <LifeBuoy size={20} />,
+      text: "Tutor Guide",
+    },
   ];
 
   if (isAppLoading) {

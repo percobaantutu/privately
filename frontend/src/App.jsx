@@ -26,6 +26,7 @@ import MyDisputes from "./pages/MyDisputes";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Message from "./pages/Messages/Message";
+import TutorGuide from "./pages/TeacherDashboard/TutorGuide";
 
 function App() {
   const location = useLocation(); // ✅ Get the current location
@@ -47,6 +48,7 @@ function App() {
               <Route path="availability" element={<Availability />} />
               <Route path="sessions" element={<Sessions />} />
               <Route path="earnings" element={<Earnings />} />
+              <Route path="guide" element={<TutorGuide />} />
             </Route>
           </Routes>
         </div>
