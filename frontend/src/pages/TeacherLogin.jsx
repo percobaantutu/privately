@@ -114,6 +114,12 @@ const TeacherLogin = () => {
           {isLoading ? "Logging in..." : "Login"}
         </button>
 
+        <div className="w-full text-left">
+          <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+            Forgot Password?
+          </Link>
+        </div>
+
         <p className="text-center w-full">
           Don't have an account?{" "}
           <Link to="/teacher/register" className="text-primary hover:text-indigo-700">

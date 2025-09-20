@@ -11,6 +11,8 @@ import {
   getMe, // This function gets the currently logged-in user's profile
   updateUserProfile,
   uploadProfilePicture,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authController.js";
 import upload from "../middleware/multer.js";
 
@@ -20,6 +22,8 @@ const router = express.Router();
 router.post("/register", register);
 router.post("/login", login);
 router.get("/logout", logout);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
 
 // --- Google OAuth Routes ---
 // This route starts the Google authentication process

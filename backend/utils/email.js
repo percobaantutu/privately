@@ -6,7 +6,8 @@ import { newBookingTeacher, newBookingStudent } from "./emailTemplates/newBookin
 import { sessionConfirmedTemplate } from "./emailTemplates/sessionConfirmedTemplate.js";
 import { sessionCancelledTemplate } from "./emailTemplates/sessionCancelledTemplate.js";
 import { payoutProcessedTemplate } from "./emailTemplates/payoutProcessedTemplate.js";
-import { newMessageTemplate } from "./emailTemplates/newMessageTemplate.js"; // <-- IMPORT NEW TEMPLATE
+import { newMessageTemplate } from "./emailTemplates/newMessageTemplate.js";
+import { passwordResetTemplate } from "./emailTemplates/passwordResetTemplate.js";
 
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST,
@@ -35,6 +36,8 @@ const getEmailTemplate = (templateName, data) => {
     // ADD THE NEW CASE FOR MESSAGES
     case "new_message":
       return newMessageTemplate(data.recipientName, data.senderName);
+    case "password_reset":
+      return passwordResetTemplate(data.name, data.resetLink);
     default:
       // Return a default or null if no template is found
       console.warn(`Email template "${templateName}" not found.`);

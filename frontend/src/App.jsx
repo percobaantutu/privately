@@ -27,6 +27,8 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Message from "./pages/Messages/Message";
 import TutorGuide from "./pages/TeacherDashboard/TutorGuide";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   const location = useLocation(); // ✅ Get the current location
@@ -70,6 +72,8 @@ function App() {
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/login" element={<Login />} />
             <Route path="/teacher/login" element={<TeacherLogin />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/teacher/register" element={<TeacherRegister />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />

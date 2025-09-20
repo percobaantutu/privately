@@ -154,6 +154,12 @@ const Login = () => {
           </Button>
         </a>
 
+        <div className="w-full text-left">
+          <Link to="/forgot-password" className="text-xs text-primary hover:underline">
+            Forgot Password?
+          </Link>
+        </div>
+
         <p className="w-full text-center">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
 

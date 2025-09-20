@@ -46,8 +46,6 @@ const userSchema = new mongoose.Schema(
       type: String,
     },
     isVerified: {
-      // ✅ FIX: The `default` property has been removed.
-      // The value will now be set exclusively by the controller.
       type: Boolean,
     },
     isActive: {
@@ -55,13 +53,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // ADDED FOR PASSWORD RESET
+    passwordResetToken: String,
+    passwordResetExpires: Date,
   },
   {
     timestamps: true,
   }
 );
 
-// Rename `name` to `fullName` for consistency with roadmap if you want. Here I'll use `fullName`
 userSchema.virtual("name").get(function () {
   return this.fullName;
 });

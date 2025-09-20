@@ -1,10 +1,11 @@
-import { v2 as cloudinary } from "cloudinary"; // <--- THIS IS THE FIX
+import { v2 as cloudinary } from "cloudinary";
 import User from "../models/userModel.js";
 import TeacherProfile from "../models/teacherProfile.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
-import { sendEmail } from "../utils/email.js"; // IMPORT THE EMAIL UTILITY
+import { sendEmail } from "../utils/email.js";
+import crypto from "crypto";
 
 // Register a new user (student or teacher)
 export const register = async (req, res) => {
@@ -252,5 +253,64 @@ export const uploadProfilePicture = async (req, res) => {
   } catch (error) {
     console.error("Upload profile picture error:", error);
     res.status(500).json({ success: false, message: "Error uploading profile picture." });
+  }
+};
+
+// Forgot Password
+export const forgotPassword = async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.body.email });
+    if (!user) {
+      // Security best practice: don't reveal if a user exists or not.
+      return res.json({ success: true, message: "If an account with that email exists, a password reset link has been sent." });
+    }
+
+    const resetToken = crypto.randomBytes(20).toString("hex");
+
+    user.passwordResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    await user.save();
+
+    const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    await sendEmail(user.email, "password_reset", { name: user.fullName, resetLink: resetUrl });
+
+    res.json({ success: true, message: "If an account with that email exists, a password reset link has been sent." });
+  } catch (error) {
+    console.error(error);
+    // Clear token fields on error to prevent user getting stuck
+    // Note: This part might require finding the user again if `user` object is not available
+    res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+// Reset Password
+export const resetPassword = async (req, res) => {
+  try {
+    const hashedToken = crypto.createHash("sha256").update(req.params.token).digest("hex");
+
+    const user = await User.findOne({
+      passwordResetToken: hashedToken,
+      passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: "Password reset token is invalid or has expired." });
+    }
+
+    if (req.body.password.length < 8) {
+      return res.status(400).json({ success: false, message: "Password must be at least 8 characters." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(req.body.password, salt);
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save();
+
+    res.json({ success: true, message: "Password has been reset successfully. Please log in." });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
