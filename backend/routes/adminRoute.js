@@ -1,10 +1,22 @@
 import express from "express";
-import { addTeacherByAdmin, getPendingPayouts, loginAdmin, processPayouts, updateTeacherStatus, getAllTeachersForAdmin, getPendingTeachers, verifyTeacher, getSingleTeacherForAdmin } from "../controllers/adminController.js";
+import {
+  addTeacherByAdmin,
+  getPendingPayouts,
+  loginAdmin,
+  processPayouts,
+  updateTeacherStatus,
+  getAllTeachersForAdmin,
+  getPendingTeachers,
+  verifyTeacher,
+  getSingleTeacherForAdmin,
+  getDashboardSummary,
+} from "../controllers/adminController.js";
 import upload from "../middleware/multer.js";
 import authAdmin from "../middleware/authAdmin.js";
 
 const adminRouter = express.Router();
 
+adminRouter.get("/dashboard-summary", authAdmin, getDashboardSummary);
 adminRouter.post("/add-teacher", authAdmin, upload.single("image"), addTeacherByAdmin);
 adminRouter.post("/login", loginAdmin);
 adminRouter.get("/all-teachers", authAdmin, getAllTeachersForAdmin);

@@ -7,6 +7,7 @@ import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import { createNotification } from "./notificationController.js";
 import { sendEmail } from "../utils/email.js";
+import Dispute from "../models/Dispute.js";
 
 // Admin can add a new teacher, who will be auto-verified.
 const addTeacherByAdmin = async (req, res) => {
@@ -183,6 +184,39 @@ const verifyTeacher = async (req, res) => {
   } catch (error) {
     console.error("Error verifying teacher:", error);
     res.status(500).json({ success: false, message: "Server error." });
+  }
+};
+
+export const getDashboardSummary = async (req, res) => {
+  try {
+    const MIN_PAYOUT_THRESHOLD = 100000;
+
+    const [pendingTeachersCount, activeTeachersCount, openDisputesCount, pendingPayoutsData, recentPendingTeachers, recentOpenDisputes] = await Promise.all([
+      User.countDocuments({ role: "teacher", isVerified: false }),
+      User.countDocuments({ role: "teacher", isVerified: true, isActive: true }),
+      Dispute.countDocuments({ status: { $in: ["open", "under_review"] } }),
+      TeacherProfile.aggregate([{ $match: { earnings: { $gte: MIN_PAYOUT_THRESHOLD } } }, { $group: { _id: null, total: { $sum: "$earnings" }, count: { $sum: 1 } } }]),
+      User.find({ role: "teacher", isVerified: false }).sort({ createdAt: -1 }).limit(5).select("fullName email createdAt"),
+      Dispute.find({ status: { $in: ["open", "under_review"] } })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .populate("filedBy", "fullName"),
+    ]);
+
+    const summary = {
+      pendingTeachersCount,
+      activeTeachersCount,
+      openDisputesCount,
+      pendingPayoutsAmount: pendingPayoutsData[0]?.total || 0,
+      pendingPayoutsCount: pendingPayoutsData[0]?.count || 0,
+      recentPendingTeachers,
+      recentOpenDisputes,
+    };
+
+    res.status(200).json({ success: true, summary });
+  } catch (error) {
+    console.error("Error fetching dashboard summary:", error);
+    res.status(500).json({ success: false, message: "Server error fetching dashboard data." });
   }
 };
 
