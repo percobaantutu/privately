@@ -1,0 +1,54 @@
+{
+  "navbar": {
+    "home": "Beranda",
+    "searchPlaceholder": "Cari seorang guru...",
+    "allTeachers": "Semua Guru",
+    "aboutUs": "Tentang Kami",
+    "contact": "Kontak",
+    "createAccount": "Buat Akun",
+    "myProfile": "Profil Saya",
+    "teacherDashboard": "Dasbor Guru",
+    "mySessions": "Sesi Saya",
+    "myDisputes": "Sengketa Saya",
+    "logout": "Keluar"
+  },
+  "header": {
+    "title": "Pesan sesi dengan Guru Profesional",
+    "subtitle": "Cukup telusuri daftar lengkap guru profesional kami, jadwalkan sesi belajar Anda dengan cara yang fleksibel.",
+    "button": "Pesan sesi"
+  },
+  "speciality": {
+    "title": "Cari berdasarkan Spesialisasi",
+    "subtitle": "Cukup telusuri daftar lengkap guru profesional kami, jadwalkan sesi Anda tanpa repot."
+  },
+  "topTutors": {
+    "title": "Guru Terbaik untuk mengajar",
+    "subtitle": "Cukup telusuri daftar lengkap guru kami yang berpendidikan baik.",
+    "more": "lebih banyak"
+  },
+  "banner": {
+    "title": "Ingin menjadi seorang tutor?",
+    "subtitle": "ayo bergabung dengan kami",
+    "button": "Buat akun guru"
+  },
+  "footer": {
+    "company": "PERUSAHAAN",
+    "getInTouch": "HUBUNGI KAMI",
+    "copyright": "Hak Cipta 2025 @ Restu Muhammad - Semua Hak Dilindungi."
+  },
+  "about": {
+    "title": "TENTANG KAMI",
+    "missionTitle": "Misi Kami: Membuat Pendidikan Berkualitas Dapat Diakses oleh Semua Orang.",
+    "missionText1": "Privately lahir dari sebuah ide sederhana: menemukan guru yang hebat seharusnya mudah. Kami melihat banyak siswa kesulitan menemukan tutor yang berkualitas dan dapat dipercaya yang bisa beradaptasi dengan gaya belajar dan jadwal sibuk mereka. Di sisi lain, para guru hebat mencari cara yang sederhana dan aman untuk terhubung dengan siswa dan membagikan pengetahuan mereka.",
+    "missionText2": "Kami menciptakan Privately untuk menjembatani kesenjangan itu. Platform kami lebih dari sekadar direktori; ini adalah komunitas yang didedikasikan untuk kepercayaan, kualitas, dan semangat bersama untuk belajar dan berkembang.",
+    "visionTitle": "Visi Kami",
+    "visionText": "Visi kami adalah menciptakan dunia di mana setiap pelajar memiliki dukungan yang mereka butuhkan untuk mencapai potensi penuh mereka. Kami membangun ruang online yang mulus, intuitif, dan aman di mana pendidikan yang dipersonalisasi hanya berjarak satu klik, memberdayakan siswa dan guru untuk berhasil.",
+    "whyTitle": "MENGAPA MEMILIH KAMI",
+    "whyTrustTitle": "KEPERCAYAAN & KUALITAS",
+    "whyTrustText": "Setiap guru di platform kami diverifikasi secara manual oleh tim admin kami. Kami memastikan mereka berkualitas, profesional, dan siap memberikan pengalaman belajar terbaik.",
+    "whyConvenienceTitle": "FLEKSIBILITAS & KENYAMANAN",
+    "whyConvenienceText": "Belajar sesuai keinginan Anda. Platform kami memudahkan untuk menemukan guru yang ketersediaannya cocok dengan jadwal Anda. Pesan sesi, kelola kalender Anda, dan belajar dari mana saja.",
+    "whySecureTitle": "PEMBAYARAN AMAN & SEDERHANA",
+    "whySecureText": "Sistem pembayaran terintegrasi kami aman dan mudah. Pesan dan bayar sesi Anda dengan percaya diri, mengetahui transaksi Anda dilindungi."
+  }
+}

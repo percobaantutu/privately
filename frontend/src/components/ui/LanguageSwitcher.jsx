@@ -1,21 +1,3 @@
-import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.jsx";
-import { BrowserRouter } from "react-router-dom";
-import AppContextProvider from "./context/AppContext";
-import { SocketContextProvider } from "./context/SocketContext.jsx";
-import "./i18n";
-
-createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
-    <AppContextProvider>
-      <SocketContextProvider>
-        <App />
-      </SocketContextProvider>
-    </AppContextProvider>
-  </BrowserRouter>
-);
-
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";

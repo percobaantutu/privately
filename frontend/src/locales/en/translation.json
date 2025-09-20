@@ -1,0 +1,54 @@
+{
+  "navbar": {
+    "home": "Home",
+    "searchPlaceholder": "Search for a teacher...",
+    "allTeachers": "All Teachers",
+    "aboutUs": "About us",
+    "contact": "Contact",
+    "createAccount": "Create Account",
+    "myProfile": "My Profile",
+    "teacherDashboard": "Teacher Dashboard",
+    "mySessions": "My Sessions",
+    "myDisputes": "My Disputes",
+    "logout": "Log out"
+  },
+  "header": {
+    "title": "Book a session with Professional Teachers",
+    "subtitle": "Simply browse through our extensive list of professional teachers, schedule your learning session in a flexible way.",
+    "button": "Book a session"
+  },
+  "speciality": {
+    "title": "Find by Speciality",
+    "subtitle": "Simply browse through our extensive list of professional teachers, schedule your session hassle-free."
+  },
+  "topTutors": {
+    "title": "Top Teachers to taught",
+    "subtitle": "Simply browse through our extensive list of well-educated teachers.",
+    "more": "more"
+  },
+  "banner": {
+    "title": "Want to be a tutor?",
+    "subtitle": "let's join with us",
+    "button": "Create teacher account"
+  },
+  "footer": {
+    "company": "COMPANY",
+    "getInTouch": "GET IN TOUCH",
+    "copyright": "Copyright 2025 @ Restu Muhammad - All Right Reserved."
+  },
+  "about": {
+    "title": "ABOUT US",
+    "missionTitle": "Our Mission: To Make Quality Education Accessible to Everyone.",
+    "missionText1": "Privately was born from a simple idea: finding a great teacher should be easy. We saw that countless students were struggling to find qualified, trustworthy tutors who could adapt to their unique learning styles and busy schedules. On the other side, amazing teachers were looking for a simple, secure way to connect with students and share their knowledge.",
+    "missionText2": "We created Privately to bridge that gap. Our platform is more than just a directory; it's a dedicated community built on trust, quality, and a shared passion for learning and growth.",
+    "visionTitle": "Our Vision",
+    "visionText": "Our vision is to create a world where every learner has the support they need to achieve their full potential. We are building a seamless, intuitive, and secure online space where personalized education is just a click away, empowering both students and teachers to succeed.",
+    "whyTitle": "WHY CHOOSE US",
+    "whyTrustTitle": "TRUST & QUALITY",
+    "whyTrustText": "Every teacher on our platform is manually verified by our admin team. We ensure they are qualified, professional, and ready to provide the best learning experience.",
+    "whyConvenienceTitle": "FLEXIBILITY & CONVENIENCE",
+    "whyConvenienceText": "Learn on your own terms. Our platform makes it easy to find teachers whose availability matches your schedule. Book sessions, manage your calendar, and learn from anywhere.",
+    "whySecureTitle": "SECURE & SIMPLE PAYMENTS",
+    "whySecureText": "Our integrated payment system is secure and straightforward. Book and pay for your sessions with confidence, knowing your transactions are protected."
+  }
+}
