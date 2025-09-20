@@ -9,8 +9,7 @@ const Footer = () => {
         <div>
           <img className="mb-5 w-40" src={assets.logo} alt="Logo" />
           <p className="w-full md:w-2/3 text-gray-600 leading-6">
-            Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a
-            type specimen book.
+            Our vision at Privately is to create a seamless learning experience for every student. We aim to bridge the gap between learners and amazing tutors, making it easier for you to get the help you need, exactly when you need it.
           </p>
         </div>
 
@@ -18,10 +17,10 @@ const Footer = () => {
           <p className="text-xl font-medium mb-5">COMPANY</p>
           <ul className="flex flex-col gap-2 text-gray-600">
             <li className="cursor-pointer hover:underline">
-              <Link>Home</Link>
+              <Link to="/">Home</Link>
             </li>
             <li className="cursor-pointer hover:underline">
-              <Link>About us</Link>
+              <Link to="/about">About us</Link>
             </li>
 
             <li className="cursor-pointer hover:underline">
