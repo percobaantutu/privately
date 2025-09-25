@@ -1,8 +1,12 @@
-import axios from 'axios';
+import axios from "axios";
+
+// Get the backend URL from Vite's environment variables
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const instance = axios.create({
-  baseURL: 'http://localhost:4000',  // Your backend server URL
-  withCredentials: true
+  // Use the dynamic URL here
+  baseURL: backendUrl,
+  withCredentials: true,
 });
 
-export default instance; 
+export default instance;

@@ -30,7 +30,7 @@ app.use(cookieParser());
 app.use(passport.initialize());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174", "https://privately-qhqk.vercel.app", "https://privately.vercel.app"], // Allow both frontend and admin
+    origin: ["http://localhost:5173", "http://localhost:5174", "https://privately.my.id", "https://www.privately.my.id", "https://admin.privately.my.id"],
     credentials: true,
   })
 );
