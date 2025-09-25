@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
-import { Button } from "../../../../frontend/src/components/ui/button";
+import { Button } from "./button";
 
 const ResolveDisputeModal = ({ isOpen, onClose, onSubmit, isLoading, dispute }) => {
   const [status, setStatus] = useState("");
