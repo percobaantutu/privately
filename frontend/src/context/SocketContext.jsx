@@ -18,7 +18,8 @@ export const SocketContextProvider = ({ children }) => {
   const { user } = useContext(AppContext);
 
   useEffect(() => {
-    if (user) {
+    // THE FIX IS HERE: We now check for user AND user._id
+    if (user && user._id) {
       // Use the backendUrl constant defined at the top of the file
       const newSocket = io(backendUrl, {
         query: {
@@ -32,14 +33,16 @@ export const SocketContextProvider = ({ children }) => {
         setOnlineUsers(users);
       });
 
+      // Cleanup function to close the socket when the user logs out or component unmounts
       return () => newSocket.close();
     } else {
+      // If there is no user or user id, ensure any existing socket is closed.
       if (socket) {
         socket.close();
         setSocket(null);
       }
     }
-  }, [user]); // The dependency array no longer needs backendUrl
+  }, [user]); // The dependency array correctly triggers this effect when user changes
 
   return <SocketContext.Provider value={{ socket, onlineUsers }}>{children}</SocketContext.Provider>;
 };
