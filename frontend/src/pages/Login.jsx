@@ -142,7 +142,7 @@ const Login = () => {
           {isLoading ? "Processing..." : isLogin ? "Login" : "Create account"}
         </button>
 
-        <a href="http://api.privately.my.id/api/auth/google" className="w-full">
+        <a href={`${backendUrl}/api/auth/google`} className="w-full">
           <Button type="button" variant="outline" className="w-full">
             <svg className="w-4 h-4 mr-2" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
               <path
