@@ -37,12 +37,18 @@ const NotificationBell = () => {
     <div className="relative" ref={dropdownRef}>
       <button onClick={() => setIsOpen(!isOpen)} className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
         <Bell size={22} className="text-gray-600" />
-        {unreadCount > 0 && <span className="absolute top-1 right-1 block h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">{unreadCount}</span>}
+        {unreadCount > 0 && <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold">{unreadCount}</span>}
       </button>
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 overflow-hidden border">
+          // THE FIX IS HERE: Added responsive positioning classes
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute right-4 left-4 mt-2 w-auto bg-white rounded-lg shadow-xl z-50 overflow-hidden border md:w-80 md:left-auto md:right-0"
+          >
             <div className="p-3 font-semibold text-gray-800 border-b">Notifications</div>
             <div className="max-h-96 overflow-y-auto">
               {notifications.length > 0 ? (
