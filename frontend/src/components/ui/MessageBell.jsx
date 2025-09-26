@@ -10,7 +10,8 @@ const MessageBell = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
+    // THE FIX IS HERE: We now check for user AND user._id
+    if (!user || !user._id) return;
 
     const fetchUnreadCount = async () => {
       try {
