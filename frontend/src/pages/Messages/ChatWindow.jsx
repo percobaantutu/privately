@@ -14,15 +14,16 @@ const ChatWindow = ({ selectedConversation, setSelectedConversation }) => {
 
   useEffect(() => {
     const markAsSeen = async () => {
-      if (selectedConversation && selectedConversation.lastMessage.sender !== user._id && !selectedConversation.lastMessage.seenBy.includes(user._id)) {
+      // THE FIX IS HERE: Add a check for user and user._id
+      if (user && user._id && selectedConversation && selectedConversation.lastMessage.sender !== user._id && !selectedConversation.lastMessage.seenBy.includes(user._id)) {
         try {
           await axios.put(`${backendUrl}/api/messages/${selectedConversation._id}/seen`);
-          // Optionally, you can trigger a context state update here to immediately clear the badge
         } catch (error) {
           console.error("Failed to mark conversation as seen", error);
         }
       }
     };
+
     if (selectedConversation) {
       const getMessages = async () => {
         try {
@@ -37,7 +38,7 @@ const ChatWindow = ({ selectedConversation, setSelectedConversation }) => {
       getMessages();
       markAsSeen();
     }
-  }, [selectedConversation, backendUrl, user._id]);
+  }, [selectedConversation, backendUrl, user]); // <-- Simplified dependency array
 
   useEffect(() => {
     socket?.on("receive_message", (message) => {
