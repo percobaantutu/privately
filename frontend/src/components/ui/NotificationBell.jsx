@@ -42,13 +42,7 @@ const NotificationBell = () => {
 
       <AnimatePresence>
         {isOpen && (
-          // THE FIX IS HERE: Added responsive positioning classes
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute right-4 left-4 mt-2 w-auto bg-white rounded-lg shadow-xl z-50 overflow-hidden border md:w-80 md:left-auto md:right-0"
-          >
+          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl z-50 overflow-hidden border">
             <div className="p-3 font-semibold text-gray-800 border-b">Notifications</div>
             <div className="max-h-96 overflow-y-auto">
               {notifications.length > 0 ? (
