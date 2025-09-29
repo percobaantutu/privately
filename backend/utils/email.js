@@ -1,6 +1,6 @@
 // File: backend/utils/email.js
 
-import nodemailer from "nodemailer";
+import * as Brevo from "@brevo/client";
 import { welcomeTemplate } from "./emailTemplates/welcomeTemplate.js";
 import { newBookingTeacher, newBookingStudent } from "./emailTemplates/newBookingTemplate.js";
 import { sessionConfirmedTemplate } from "./emailTemplates/sessionConfirmedTemplate.js";
@@ -9,18 +9,11 @@ import { payoutProcessedTemplate } from "./emailTemplates/payoutProcessedTemplat
 import { newMessageTemplate } from "./emailTemplates/newMessageTemplate.js";
 import { passwordResetTemplate } from "./emailTemplates/passwordResetTemplate.js";
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  // Add this for better debugging
-  logger: true,
-  debug: true,
-});
+// --- Brevo API Client Setup ---
+const apiInstance = new Brevo.TransactionalEmailsApi();
+apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
+const sendSmtpEmail = new Brevo.SendSmtpEmail();
+// --- End of Setup ---
 
 const getEmailTemplate = (templateName, data) => {
   switch (templateName) {
@@ -42,33 +35,32 @@ const getEmailTemplate = (templateName, data) => {
       return passwordResetTemplate(data.name, data.resetLink);
     default:
       console.warn(`Email template "${templateName}" not found.`);
-      return { subject: "Notification from Privately", html: `<p>You have a new notification.</p>` };
+      return { subject: "Notification from Privately", htmlContent: `<p>You have a new notification.</p>` };
   }
 };
 
 export const sendEmail = async (to, templateName, data) => {
-  console.log(`[Email Service] Attempting to send '${templateName}' email to: ${to}`);
+  console.log(`[Email Service API] Attempting to send '${templateName}' email to: ${to}`);
   try {
     const { subject, html } = getEmailTemplate(templateName, data);
 
     if (!subject || !html) {
-      console.error(`[Email Service] Could not generate email content for template: ${templateName}`);
+      console.error(`[Email Service API] Could not generate email content for template: ${templateName}`);
       return;
     }
 
-    const mailOptions = {
-      from: `Privately <${process.env.EMAIL_FROM}>`, // Using a name + email format
-      to,
-      subject,
-      html,
-    };
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
+    sendSmtpEmail.sender = { name: "Privately", email: process.env.EMAIL_FROM };
+    sendSmtpEmail.to = [{ email: to }];
 
-    console.log("[Email Service] Sending mail with options:", { from: mailOptions.from, to: mailOptions.to, subject: mailOptions.subject });
+    console.log(`[Email Service API] Sending email to ${to} with subject: "${subject}"`);
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[Email Service] Email sent successfully to ${to}. Message ID: ${info.messageId}`);
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+    console.log(`[Email Service API] Email sent successfully to ${to}.`);
   } catch (error) {
-    // This will now log the detailed error from Nodemailer/Brevo
-    console.error(`[Email Service] CRITICAL ERROR sending email to ${to}:`, error);
+    // This will now log the detailed error from the Brevo API
+    console.error(`[Email Service API] CRITICAL ERROR sending email to ${to}:`, error.response?.body || error.message);
   }
 };
