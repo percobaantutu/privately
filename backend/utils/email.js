@@ -1,6 +1,6 @@
 // File: backend/utils/email.js
 
-import * as Brevo from "@brevo/client";
+import * as Brevo from "@getbrevo/brevo";
 import { welcomeTemplate } from "./emailTemplates/welcomeTemplate.js";
 import { newBookingTeacher, newBookingStudent } from "./emailTemplates/newBookingTemplate.js";
 import { sessionConfirmedTemplate } from "./emailTemplates/sessionConfirmedTemplate.js";
