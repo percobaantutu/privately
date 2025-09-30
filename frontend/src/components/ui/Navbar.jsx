@@ -8,6 +8,7 @@ import { Menu, X, Search } from "lucide-react";
 import { AppContext } from "@/context/AppContext";
 import NotificationBell from "./NotificationBell";
 import MessageBell from "./MessageBell";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 function Navbar({ isTeacherView = false }) {
   const navigate = useNavigate();
@@ -74,6 +75,7 @@ function Navbar({ isTeacherView = false }) {
       <div className="flex gap-2 sm:gap-4 items-center">
         {user ? (
           <>
+            <LanguageSwitcher />
             <NotificationBell />
             <MessageBell />
             <div className="hidden md:flex">
