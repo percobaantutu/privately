@@ -76,8 +76,9 @@ function Navbar({ isTeacherView = false }) {
         {user ? (
           <>
             <LanguageSwitcher />
-            <NotificationBell />
+
             <MessageBell />
+            <NotificationBell />
             <div className="hidden md:flex">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -183,9 +184,11 @@ function Navbar({ isTeacherView = false }) {
                   <NavLink to="/contact" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "text-primary font-bold" : "")}>
                     <li className="px-2 py-2 hover:bg-gray-100 rounded-lg">Contact</li>
                   </NavLink>
-                  <NavLink to="/login" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "text-primary font-bold" : "")}>
-                    <li className="px-2 py-2 hover:bg-gray-100 rounded-lg">Sign up/ Login</li>
-                  </NavLink>
+                  {!user && (
+                    <NavLink to="/login" onClick={() => setShowMenu(false)} className={({ isActive }) => (isActive ? "text-primary font-bold" : "")}>
+                      <li className="px-2 py-2 hover:bg-gray-100 rounded-lg">Sign up/ Login</li>
+                    </NavLink>
+                  )}
                 </ul>
               ) : (
                 <ul className="flex flex-col gap-4 text-lg font-medium">
